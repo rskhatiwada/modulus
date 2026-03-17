@@ -1,0 +1,109 @@
+:root {
+    /* ── Brand Colors ─────────────────────────── */
+    --sf-green: #2563eb;
+    --sf-green-dark: #1d4ed8;
+    --sf-green-light: #3b82f6;
+    --sf-yellow: #fef100;
+    --sf-yellow-dark: #d4c800;
+
+    /* ── Background Layers ────────────────────── */
+    --sf-bg-base: #030712;
+    /* gray-950 — main background */
+    --sf-bg-card: #111827;
+    /* gray-900 — cards */
+    --sf-bg-elevated: #1f2937;
+    /* gray-800 — inputs, hover */
+
+    /* ── Borders ──────────────────────────────── */
+    --sf-border: #1f2937;
+    /* gray-800 — default border */
+    --sf-border-active: #23b14d;
+    /* green — focused/active border */
+
+    /* ── Text ─────────────────────────────────── */
+    --sf-text-primary: #ffffff;
+    --sf-text-secondary: #9ca3af;
+    /* gray-400 */
+    --sf-text-muted: #4b5563;
+    /* gray-600 */
+
+    /* ── Semantic Colors ──────────────────────── */
+    --sf-correct: #23b14d;
+    /* correct answer */
+    --sf-incorrect: #ef4444;
+    /* red-500 — wrong answer */
+    --sf-warning: #f97316;
+    /* orange-500 — misconception badge */
+    --sf-crt: #a855f7;
+    /* purple-500 — think carefully badge */
+    --sf-boss: #ef4444;
+    /* red — boss battle */
+    --sf-blitz: #23b14d;
+    /* green — blitz */
+
+    /* ── Typography ───────────────────────────── */
+    --sf-font: system-ui, -apple-system, sans-serif;
+    --sf-radius: 1rem;
+    /* rounded-2xl equivalent */
+    --sf-radius-sm: 0.75rem;
+    /* rounded-xl equivalent */
+}
+
+/* ── Utility classes using variables ──────── */
+.sf-btn-primary {
+    background-color: var(--sf-green);
+    color: white;
+    font-weight: 700;
+    border-radius: var(--sf-radius);
+    padding: 0.75rem 1.5rem;
+    transition: background-color 0.2s;
+    width: 100%;
+}
+
+.sf-btn-primary:hover {
+    background-color: var(--sf-green-dark);
+}
+
+.sf-btn-boss {
+    background-color: var(--sf-boss);
+    color: white;
+    font-weight: 700;
+    border-radius: var(--sf-radius);
+    padding: 0.75rem 1.5rem;
+    transition: background-color 0.2s;
+    width: 100%;
+}
+
+.sf-card {
+    background-color: var(--sf-bg-card);
+    border: 1px solid var(--sf-border);
+    border-radius: var(--sf-radius);
+    padding: 1.25rem;
+}
+
+.sf-badge-crt {
+    background-color: #3b0764;
+    color: #d8b4fe;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    font-weight: 500;
+}
+
+.sf-badge-misconception {
+    background-color: #431407;
+    color: #fed7aa;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    font-weight: 500;
+}
+
+.sf-badge-anchor {
+    background-color: var(--sf-bg-elevated);
+    color: var(--sf-text-secondary);
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    font-weight: 500;
+}
