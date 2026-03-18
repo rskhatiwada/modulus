@@ -12,19 +12,25 @@ export function getUserId() {
   return id
 }
 
-// ── Load progress for a course ────────────────────────────
+// ── Load / Save ───────────────────────────────────────────
 export function loadProgress(slug) {
   const raw = localStorage.getItem(key(slug))
   if (!raw) return null
   return JSON.parse(raw)
 }
 
-// ── Save progress for a course ────────────────────────────
 export function saveProgress(slug, data) {
   localStorage.setItem(key(slug), JSON.stringify(data))
 }
 
-// ── Initialise a fresh progress object for a course ───────
+// ── Attempt count ─────────────────────────────────────────
+export function getAttemptCount(courseSlug, questionId) {
+  const progress = loadProgress(courseSlug)
+  if (!progress) return 0
+  return (progress.questions || []).filter(q => q.id === questionId).length
+}
+
+// ── Init fresh progress ───────────────────────────────────
 export function initProgress(slug) {
   const userId = getUserId()
   const fresh = {
@@ -35,11 +41,14 @@ export function initProgress(slug) {
     levelScores: { 1: null, 2: null, 3: null },
     badgeEarned: false,
     questions: [],
+    blitz: [],
+    boss: [],
     profile: {
       overconfidenceIndex: 0,
       system1Vulnerability: 0,
       misconceptionsDetected: [],
-      calibrationScore: 0
+      calibrationScore: 0,
+      conceptMastery: {}
     }
   }
   saveProgress(slug, fresh)
@@ -48,78 +57,107 @@ export function initProgress(slug) {
 
 // ── Record a single question answer ───────────────────────
 export function recordAnswer(slug, {
-  id, type, misconception, correct,
-  confidence, timeMs, level
+  id,
+  level,
+  type,
+  misconceptionTag,     // replaces old 'misconception' field
+  conceptTags,
+  difficultyEstimate,
+  cognitiveProcess,
+  correct,
+  confidence,
+  timeMs,
+  system1Trap: passedSystem1Trap,   // passed in from QuizScreen
+  overconfidentWrong,
+  anchorSusceptible,
+  lastSeen,
+  attemptCount
 }) {
   const progress = loadProgress(slug) || initProgress(slug)
 
-  const system1Trap =
+  // Fallback compute system1Trap if not passed (backward compat)
+  // Supports both old 'got_it' and new 'knew_it'
+  const system1Trap = passedSystem1Trap ?? (
     !correct &&
-    confidence === 'got_it' &&
+    (confidence === 'knew_it' || confidence === 'got_it') &&
     timeMs < 8000
+  )
 
   const entry = {
     id,
+    level,
     type,
-    misconception: misconception || null,
+    misconceptionTag: misconceptionTag || null,
+    conceptTags: conceptTags || [],
+    difficultyEstimate: difficultyEstimate || null,
+    cognitiveProcess: cognitiveProcess || null,
     correct,
     confidence,
     timeMs,
-    level,
     system1Trap,
-    lastSeen: Date.now()
+    overconfidentWrong: overconfidentWrong ?? (!correct && (confidence === 'knew_it' || confidence === 'got_it')),
+    anchorSusceptible: anchorSusceptible ?? null,
+    lastSeen: lastSeen || Date.now(),
+    attemptCount: attemptCount || 1
   }
 
-  // Remove previous answer for this question if re-attempting
+  // Replace previous answer for this question on re-attempt
   progress.questions = progress.questions.filter(q => q.id !== id)
   progress.questions.push(entry)
 
   // ── Recompute diagnostic profile ──────────────────────
   const answered = progress.questions
   const wrong = answered.filter(q => !q.correct)
-  const wrongConfident = wrong.filter(q => q.confidence === 'got_it')
-  const fastWrong = wrong.filter(q => q.timeMs < 8000)
+
+  // Support both old got_it and new knew_it
+  const knewIt = q => q.confidence === 'knew_it' || q.confidence === 'got_it'
 
   progress.profile.overconfidenceIndex =
-    wrong.length > 0 ? wrongConfident.length / wrong.length : 0
+    wrong.length > 0 ? wrong.filter(q => knewIt(q)).length / wrong.length : 0
 
   progress.profile.system1Vulnerability =
-    wrong.length > 0 ? fastWrong.length / wrong.length : 0
+    wrong.length > 0 ? wrong.filter(q => q.system1Trap).length / wrong.length : 0
 
-  // Track unique misconceptions detected
-  const detected = answered
-    .filter(q => !q.correct && q.misconception)
-    .map(q => q.misconception)
-  progress.profile.misconceptionsDetected = [...new Set(detected)]
+  // Misconceptions detected from wrong answers
+  progress.profile.misconceptionsDetected = [...new Set(
+    answered.filter(q => !q.correct && q.misconceptionTag).map(q => q.misconceptionTag)
+  )]
 
-  // Calibration: proportion where confidence matched outcome
+  // Calibration: confidence matched correctness
   const calibrated = answered.filter(q =>
-    (q.correct && q.confidence === 'got_it') ||
+    (q.correct && knewIt(q)) ||
     (!q.correct && q.confidence === 'guessed')
   )
   progress.profile.calibrationScore =
     answered.length > 0 ? calibrated.length / answered.length : 0
 
+  // Concept mastery: group by conceptTag, compute accuracy per tag
+  const conceptMastery = {}
+  answered.forEach(q => {
+    (q.conceptTags || []).forEach(tag => {
+      if (!conceptMastery[tag]) conceptMastery[tag] = { correct: 0, total: 0 }
+      conceptMastery[tag].total++
+      if (q.correct) conceptMastery[tag].correct++
+    })
+  })
+  progress.profile.conceptMastery = conceptMastery
+
   saveProgress(slug, progress)
   return progress
 }
 
-// ── Record level score and unlock next level if >= 70% ────
+// ── Record level score and unlock next ────────────────────
 export function recordLevelScore(slug, level, score) {
   const progress = loadProgress(slug) || initProgress(slug)
   progress.levelScores[level] = score
-
-  if (score >= 0.7) {
-    if (level < 3 && !progress.levelsUnlocked.includes(level + 1)) {
-      progress.levelsUnlocked.push(level + 1)
-    }
+  if (score >= 0.7 && level < 3 && !progress.levelsUnlocked.includes(level + 1)) {
+    progress.levelsUnlocked.push(level + 1)
   }
-
   saveProgress(slug, progress)
   return progress
 }
 
-// ── Record boss battle result and award badge ─────────────
+// ── Record boss result ────────────────────────────────────
 export function recordBossResult(slug, passed) {
   const progress = loadProgress(slug) || initProgress(slug)
   progress.badgeEarned = passed
@@ -128,61 +166,38 @@ export function recordBossResult(slug, passed) {
   return progress
 }
 
-// ── Check if a level is unlocked ──────────────────────────
+// ── Check level unlock ────────────────────────────────────
 export function isLevelUnlocked(slug, level) {
   const progress = loadProgress(slug)
   if (!progress) return level === 1
   return progress.levelsUnlocked.includes(level)
 }
 
-// ── Record a single blitz answer ──────────────────────────
-export function recordBlitzAnswer(slug, {
-  id, statement, correct, timeMs
-}) {
+// ── Record blitz answer ───────────────────────────────────
+export function recordBlitzAnswer(slug, { id, statement, correct, timeMs }) {
   const progress = loadProgress(slug) || initProgress(slug)
-
   if (!progress.blitz) progress.blitz = []
-
-  // Remove previous attempt for this statement if re-attempting
   progress.blitz = progress.blitz.filter(b => b.id !== id)
-
-  progress.blitz.push({
-    id,
-    statement,
-    correct,
-    timeMs,
-    lastSeen: Date.now()
-  })
-
+  progress.blitz.push({ id, statement, correct, timeMs, lastSeen: Date.now() })
   saveProgress(slug, progress)
   return progress
 }
 
-// ── Record a single boss answer ───────────────────────────
-export function recordBossAnswer(slug, {
-  id, correct, timeMs
-}) {
+// ── Record boss answer ────────────────────────────────────
+export function recordBossAnswer(slug, { id, correct, timeMs }) {
   const progress = loadProgress(slug) || initProgress(slug)
-
   if (!progress.boss) progress.boss = []
-
   progress.boss = progress.boss.filter(b => b.id !== id)
-
   progress.boss.push({
-    id,
-    correct,
-    timeMs,
-    // Fast + wrong in Boss = strongest possible System 1 signal
-    // No confidence tap in Boss so we use time as proxy
+    id, correct, timeMs,
     system1Trap: !correct && timeMs < 6000,
     lastSeen: Date.now()
   })
-
   saveProgress(slug, progress)
   return progress
 }
 
-// ── Get score for a specific level ────────────────────────
+// ── Get level score ───────────────────────────────────────
 export function getLevelScore(slug, level) {
   const progress = loadProgress(slug)
   if (!progress) return null

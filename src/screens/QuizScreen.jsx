@@ -3,10 +3,12 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { courses } from '../data/courses'
 import ProgressBar from '../components/ProgressBar'
 import MathText from '../components/MathText'
+import { getQuestionImage } from '../utils/imageUrl'     // ← ADDED
 import {
   recordAnswer,
   recordLevelScore,
-  isLevelUnlocked
+  isLevelUnlocked,
+  getAttemptCount
 } from '../utils/storage'
 
 const LEVEL_MAP = { 'level-1': 1, 'level-2': 2, 'level-3': 3 }
@@ -26,7 +28,8 @@ function shuffleOptions(options, correctIndex) {
   const newCorrectIndex = shuffled.findIndex(o => o.original === correctIndex)
   return {
     options: shuffled.map(o => o.text),
-    correctIndex: newCorrectIndex
+    correctIndex: newCorrectIndex,
+    originalIndices: shuffled.map(o => o.original)
   }
 }
 
@@ -51,16 +54,26 @@ export default function QuizScreen() {
   const [answers, setAnswers] = useState([])
   const answersRef = useRef([])
   const startTime = useRef(Date.now())
+  const explanationRef = useRef(null)  
 
   const question = questions[index]
   const currentOptions = shuffledOptions[index]
 
-  // Reset index and answers when level changes
+  useEffect(() => {
+    startTime.current = Date.now()
+  }, [index])
+
   useEffect(() => {
     setIndex(0)
     setAnswers([])
     answersRef.current = []
   }, [level])
+
+  useEffect(() => {                          // ← add here
+    if (showExplanation && explanationRef.current) {
+      explanationRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [showExplanation])
 
   if (!course) return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center">
@@ -94,14 +107,33 @@ export default function QuizScreen() {
     const timeMs = Date.now() - startTime.current
     const correct = selected === currentOptions.correctIndex
 
+    const system1Trap = !correct && signal === 'knew_it' && timeMs < 8000
+    const overconfidentWrong = !correct && signal === 'knew_it'
+
+    let anchorSusceptible = null
+    if (question.type === 'anchor' && question.anchorSusceptibleOptionIndex != null) {
+      const selectedOriginalIndex = currentOptions.originalIndices[selected]
+      anchorSusceptible = selectedOriginalIndex === question.anchorSusceptibleOptionIndex
+    }
+
+    const attemptCount = getAttemptCount(slug, question.id) + 1
+
     recordAnswer(slug, {
       id: question.id,
+      level,
       type: question.type,
-      misconception: question.misconception,
+      misconceptionTag: question.misconceptionTag,
+      conceptTags: question.conceptTags,
+      difficultyEstimate: question.difficultyEstimate,
+      cognitiveProcess: question.cognitiveProcess,
       correct,
       confidence: signal,
       timeMs,
-      level
+      system1Trap,
+      overconfidentWrong,
+      anchorSusceptible,
+      lastSeen: Date.now(),
+      attemptCount
     })
 
     const updated = [...answersRef.current, { correct, confidence: signal }]
@@ -131,11 +163,14 @@ export default function QuizScreen() {
 
   const isCorrect = selected === currentOptions?.correctIndex
 
+  // ← ADDED: resolve image URL once per question render
+  const questionImageUrl = getQuestionImage(slug, question.image ?? null)
+
   return (
-    <div className="min-h-screen bg-gray-950 px-4 py-8 max-w-2xl mx-auto">
+    <div className="min-h-screen bg-gray-950 px-3 py-6 max-w-2xl mx-auto">
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <button
           onClick={() => navigate(`/${domain}/${topic}/${slug}/story`)}
           className="text-gray-500 text-sm hover:text-white transition-colors"
@@ -150,7 +185,7 @@ export default function QuizScreen() {
       <ProgressBar current={index} total={questions.length} />
 
       {/* Question type badge */}
-      <div className="mt-6 mb-4 min-h-[28px]">
+      <div className="mt-3 mb-3 min-h-[22px]">
         {question.type === 'crt' && (
           <span className="sf-badge-crt">Think carefully</span>
         )}
@@ -163,9 +198,21 @@ export default function QuizScreen() {
       </div>
 
       {/* Question */}
-      <h2 className="text-white text-lg font-semibold leading-snug mb-6">
+      <h2 className="text-white text-lg font-semibold leading-snug mb-4">
         <MathText text={question.question} />
       </h2>
+
+      {questionImageUrl && (
+        <div className="w-[85%] max-w-md mx-auto mb-6 rounded-xl overflow-hidden border border-gray-800 aspect-video">
+          <img
+            src={questionImageUrl}
+            alt={`Diagram for question ${question.id}`}
+            loading="lazy"
+            decoding="async"
+            className="w-full h-full object-cover bg-gray-900"
+          />
+        </div>
+      )}
 
       {/* Options */}
       <div className="flex flex-col gap-3">
@@ -184,7 +231,7 @@ export default function QuizScreen() {
             <button
               key={i}
               onClick={() => handleSelect(i)}
-              className={`${style} rounded-xl px-4 py-4 text-left text-sm font-medium transition-all duration-150`}
+              className={`${style} rounded-xl px-3 py-3 text-left text-sm font-medium transition-all duration-150`}
             >
               <span className="text-gray-500 mr-3">{['A', 'B', 'C', 'D'][i]}.</span>
               <MathText text={option} />
@@ -199,7 +246,7 @@ export default function QuizScreen() {
           <p className="text-gray-400 text-sm text-center mb-3">How did you find that?</p>
           <div className="flex gap-3 justify-center">
             {[
-              { signal: 'got_it', label: 'Knew it', emoji: '✅' },
+              { signal: 'knew_it', label: 'Knew it', emoji: '✅' },
               { signal: 'unsure', label: 'Unsure', emoji: '🤔' },
               { signal: 'guessed', label: 'Guessed', emoji: '🎲' },
             ].map(({ signal, label, emoji }) => (
@@ -218,7 +265,7 @@ export default function QuizScreen() {
 
       {/* Explanation */}
       {showExplanation && (
-        <div className={`mt-6 rounded-2xl p-4 ${isCorrect ? 'bg-green-950 border border-green-800' : 'bg-red-950 border border-red-800'}`}>
+        <div ref={explanationRef} className={`mt-6 rounded-2xl p-4 ${isCorrect ? 'bg-green-950 border border-green-800' : 'bg-red-950 border border-red-800'}`}>
           <p className={`text-sm font-bold mb-2 ${isCorrect ? 'text-green-400' : 'text-red-400'}`}>
             {isCorrect ? '✓ Correct' : '✗ Incorrect'}
           </p>

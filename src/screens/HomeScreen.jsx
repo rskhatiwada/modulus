@@ -6,7 +6,7 @@ export default function HomeScreen() {
   const navigate = useNavigate()
 
   return (
-    <div className="min-h-screen bg-gray-950 px-4 py-10 max-w-2xl mx-auto">
+    <div className="min-h-screen bg-gray-950 px-3 py-6 max-w-2xl mx-auto">
 
       {/* Header */}
       <div className="mb-10">
