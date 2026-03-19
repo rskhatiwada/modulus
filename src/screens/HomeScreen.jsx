@@ -57,6 +57,7 @@ export default function HomeScreen() {
   const [searchExpanded, setSearchExpanded] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [authModal, setAuthModal] = useState(false)
+  const [visibleCount, setVisibleCount] = useState(8)
   const inputRef = useRef(null)
   const searchSectionRef = useRef(null)
 
@@ -108,12 +109,18 @@ export default function HomeScreen() {
     setCleanedQuery(cq)
   }, [activeDomain])
 
+  useEffect(() => {
+    setVisibleCount(8)
+  }, [activeDomain])
+
   const isSearching = !!query.trim()
   const hasResults = results && (results.tier1.length > 0 || results.tier2.length > 0)
   const totalResults = (results?.tier1?.length || 0) + (results?.tier2?.length || 0)
-  const filteredCourses = activeDomain
+  const allFilteredCourses = activeDomain
     ? courses.filter(c => c.domain === activeDomain)
     : courses
+  const filteredCourses = allFilteredCourses.slice(0, visibleCount)
+  const hasMore = visibleCount < allFilteredCourses.length
 
   function handleQueryChange(val) {
     setQuery(val)
@@ -266,6 +273,7 @@ export default function HomeScreen() {
         </div>
       </section>
 
+      <div className="border-t border-gray-800/40 max-w-3xl mx-auto" />
 
 
       {/* ── Search + Course List ─────────────────────────────────────────── */}
@@ -452,11 +460,23 @@ export default function HomeScreen() {
 
         {/* Full course list */}
         {!isSearching && (
-          <div className="flex flex-col gap-4">
-            {filteredCourses.map(course => (
-              <CourseCard key={course.slug} course={course} navigate={navigate} />
-            ))}
-          </div>
+          <>
+            <div className="flex flex-col gap-4">
+              {filteredCourses.map(course => (
+                <CourseCard key={course.slug} course={course} navigate={navigate} />
+              ))}
+            </div>
+            {hasMore && (
+              <button
+                onClick={() => setVisibleCount(v => v + 8)}
+                className="w-full mt-6 py-3 rounded-xl border border-gray-800
+                           text-gray-400 hover:border-blue-500 hover:text-white
+                           text-sm font-semibold transition-all duration-200"
+              >
+                Load More ({allFilteredCourses.length - visibleCount} remaining)
+              </button>
+            )}
+          </>
         )}
 
       </section>
