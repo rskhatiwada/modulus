@@ -39,7 +39,7 @@ const DOMAINS = [
 const STATS = [
   { value: '139', label: 'Courses' },
   { value: '8', label: 'Domains' },
-  { value: '15', label: 'Minutes' },
+  { value: '15', label: 'Mins' },
 ]
 
 // ── Main Component ────────────────────────────────────────────────────────────
@@ -259,7 +259,7 @@ export default function HomeScreen() {
             ))}
             <div className="h-8 w-px bg-gray-800 mx-1" />
             <p className="text-gray-600 text-xs leading-relaxed">
-              Built for curious minds.<br />No STEM background needed.
+              Built for the Curious<br />With Proprietary <Algorithm></Algorithm>.
             </p>
           </div>
 
@@ -340,7 +340,7 @@ export default function HomeScreen() {
         {/* Search hint */}
         {!isSearching && (
           <p className="text-gray-600 text-xs mb-4">
-            Search by concept, question, or misconception — e.g. "heavier things fall faster"
+            Search by concept/question/misconception — e.g. "heavier fall faster"
           </p>
         )}
 
