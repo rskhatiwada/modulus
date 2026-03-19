@@ -214,7 +214,7 @@ export default function HomeScreen() {
           <div className="inline-flex items-center gap-1.5 bg-blue-950/60 border border-blue-900/60
                     text-blue-400 text-xs font-semibold px-3 py-1 rounded-full mb-5">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-            STEM · 8 Domains · Free
+            STEM · AI-Powered · Futuristic
           </div>
 
           {/* Headline — larger on wide screens */}
@@ -259,7 +259,7 @@ export default function HomeScreen() {
             ))}
             <div className="h-8 w-px bg-gray-800 mx-1" />
             <p className="text-gray-600 text-xs leading-relaxed">
-              Built for the Curious<br />With Proprietary Algorithm.
+              Built for the Curious<br /><span>© QKSM Algorithm</span>
             </p>
           </div>
 
@@ -294,25 +294,36 @@ export default function HomeScreen() {
             onBlur={handleSearchBlur}
             onKeyDown={e => { if (e.key === 'Enter') handleSearchSubmit() }}
             placeholder={HINTS[hintIndex]}
-            className="w-full bg-gray-900 border border-gray-800 rounded-xl
-                       pl-9 pr-4 py-3 text-white text-sm
-                       placeholder-gray-600 focus:outline-none focus:border-blue-500
-                       transition-colors duration-200"
+            className={`w-full bg-gray-900 border border-gray-800 rounded-xl
+               pl-9 py-3 text-white text-sm
+               placeholder-gray-600 focus:outline-none focus:border-blue-500
+               transition-colors duration-200
+               ${query ? 'pr-24' : 'pr-4'}`}
           />
+
           {query && (
-            <button
-              onClick={() => { setQuery(''); setSuggestion(null); setResults(null) }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500
-                         hover:text-white text-lg transition-colors"
-            >
-              ×
-            </button>
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              <button
+                onClick={() => { setQuery(''); setSuggestion(null); setResults(null) }}
+                className="text-gray-500 hover:text-white text-lg transition-colors px-1"
+              >
+                ×
+              </button>
+              <button
+                onClick={handleSearchSubmit}
+                className="bg-blue-600 hover:bg-blue-500 active:scale-95
+                   text-white text-xs font-semibold px-3 py-1.5 rounded-lg
+                   transition-all duration-200"
+              >
+                Search
+              </button>
+            </div>
           )}
 
           {/* Search history dropdown */}
           {showHistory && history.length > 0 && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-gray-900
-                            border border-gray-800 rounded-xl overflow-hidden z-10 shadow-xl">
+                    border border-gray-800 rounded-xl overflow-hidden z-10 shadow-xl">
               <div className="flex items-center justify-between px-3 pt-2 pb-1">
                 <span className="text-gray-600 text-xs uppercase tracking-widest">Recent</span>
                 <button
@@ -327,7 +338,7 @@ export default function HomeScreen() {
                   key={i}
                   onClick={() => handleHistoryClick(item)}
                   className="w-full text-left px-3 py-2 text-sm text-gray-400
-                             hover:bg-gray-800 hover:text-white transition-colors flex items-center gap-2"
+                     hover:bg-gray-800 hover:text-white transition-colors flex items-center gap-2"
                 >
                   <span className="text-gray-600 text-xs">↺</span>
                   {item}
@@ -340,7 +351,7 @@ export default function HomeScreen() {
         {/* Search hint */}
         {!isSearching && (
           <p className="text-gray-600 text-xs mb-4">
-            Search by concept/question/misconception — e.g. "heavier fall faster"
+            Search by question, concept or misconception...
           </p>
         )}
 
