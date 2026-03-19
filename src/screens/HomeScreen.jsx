@@ -1,96 +1,392 @@
 import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
 import { courses } from '../data/courses'
 import { loadProgress } from '../utils/storage'
+import {
+  searchCourses,
+  getMatchedTags,
+  didYouMean,
+  getSearchHistory,
+  saveSearchHistory,
+  clearSearchHistory,
+} from '../utils/search'
+
+const HINTS = [
+  "Try: 'quantum tunneling'",
+  "Try: 'why do things float?'",
+  "Try: 'heavier things fall faster'",
+  "Try: 'f=ma'",
+  "Try: 'how DNA works'",
+  "Try: 'Bayes theorem'",
+  "Try: 'dark matter'",
+  "Try: 'what is entropy'",
+]
+
+const DOMAINS = [
+  { key: null,               label: 'All' },
+  { key: 'physics',          label: 'Physics' },
+  { key: 'mathematics',      label: 'Maths' },
+  { key: 'biology',          label: 'Biology' },
+  { key: 'chemistry',        label: 'Chemistry' },
+  { key: 'computer-science', label: 'CS' },
+  { key: 'neuroscience',     label: 'Neuro' },
+  { key: 'earth-and-space',  label: 'Space' },
+  { key: 'engineering',      label: 'Eng' },
+]
 
 export default function HomeScreen() {
   const navigate = useNavigate()
+  const [query, setQuery] = useState('')
+  const [hintIndex, setHintIndex] = useState(0)
+  const [results, setResults] = useState(null)
+  const [cleanedQuery, setCleanedQuery] = useState('')
+  const [suggestion, setSuggestion] = useState(null)
+  const [activeDomain, setActiveDomain] = useState(null)
+  const [history, setHistory] = useState([])
+  const [showHistory, setShowHistory] = useState(false)
+  const inputRef = useRef(null)
+
+  // Load search history on mount
+  useEffect(() => {
+    setHistory(getSearchHistory())
+  }, [])
+
+  // Cycle placeholder hints when not typing
+  useEffect(() => {
+    if (query) return
+    const interval = setInterval(() => {
+      setHintIndex(i => (i + 1) % HINTS.length)
+    }, 2500)
+    return () => clearInterval(interval)
+  }, [query])
+
+  // Run search on every keystroke
+  useEffect(() => {
+    if (!query.trim()) {
+      setResults(null)
+      setCleanedQuery('')
+      setSuggestion(null)
+      return
+    }
+    const { tier1, tier2, cleanedQuery: cq } = searchCourses(query, activeDomain)
+    setResults({ tier1, tier2 })
+    setCleanedQuery(cq)
+
+    // Did you mean — only show when no results
+    if (!tier1.length && !tier2.length) {
+      setSuggestion(didYouMean(query))
+    } else {
+      setSuggestion(null)
+    }
+  }, [query, activeDomain])
+
+  // Re-filter when domain changes (even without new query)
+  useEffect(() => {
+    if (!query.trim()) return
+    const { tier1, tier2, cleanedQuery: cq } = searchCourses(query, activeDomain)
+    setResults({ tier1, tier2 })
+    setCleanedQuery(cq)
+  }, [activeDomain])
+
+  const isSearching = !!query.trim()
+  const hasResults = results && (results.tier1.length > 0 || results.tier2.length > 0)
+  const totalResults = (results?.tier1?.length || 0) + (results?.tier2?.length || 0)
+
+  function handleQueryChange(val) {
+    setQuery(val)
+    setShowHistory(false)
+  }
+
+  function handleSearchFocus() {
+    if (!query.trim()) setShowHistory(true)
+  }
+
+  function handleSearchBlur() {
+    // Delay so clicks on history items register first
+    setTimeout(() => setShowHistory(false), 150)
+  }
+
+  function handleHistoryClick(item) {
+    setQuery(item)
+    setShowHistory(false)
+    inputRef.current?.focus()
+  }
+
+  function handleSearchSubmit() {
+    if (!query.trim()) return
+    saveSearchHistory(query)
+    setHistory(getSearchHistory())
+    setShowHistory(false)
+  }
+
+  function handleClearHistory() {
+    clearSearchHistory()
+    setHistory([])
+  }
+
+  // Filtered full list for domain chip without search
+  const filteredCourses = activeDomain
+    ? courses.filter(c => c.domain === activeDomain)
+    : courses
 
   return (
     <div className="min-h-screen bg-gray-950 px-3 py-6 max-w-2xl mx-auto">
 
       {/* Header */}
-      <div className="mb-10">
+      <div className="mb-6">
         <h1 className="text-3xl font-bold text-white tracking-tight">
           Scientific<span className="text-blue-500">FREAK</span>
         </h1>
         <p className="text-gray-400 mt-1 text-sm">Be an expert in 15 minutes.</p>
       </div>
 
-      {/* Course Cards */}
-      <div className="flex flex-col gap-4">
-        {courses.map(course => {
-          const progress = loadProgress(course.slug)
-          const badge = progress?.badgeEarned
-          const started = !!progress
-          const level1Score = progress?.levelScores?.[1]
-          const completed = progress?.completedAt
+      {/* Search field */}
+      <div className="relative mb-3">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-base pointer-events-none">
+          🔍
+        </span>
+        <input
+          ref={inputRef}
+          type="text"
+          value={query}
+          onChange={e => handleQueryChange(e.target.value)}
+          onFocus={handleSearchFocus}
+          onBlur={handleSearchBlur}
+          onKeyDown={e => { if (e.key === 'Enter') handleSearchSubmit() }}
+          placeholder={HINTS[hintIndex]}
+          className="w-full bg-gray-900 border border-gray-800 rounded-xl
+                     pl-9 pr-4 py-3 text-white text-sm
+                     placeholder-gray-600 focus:outline-none focus:border-blue-500
+                     transition-colors duration-200"
+        />
+        {query && (
+          <button
+            onClick={() => { setQuery(''); setSuggestion(null); setResults(null) }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500
+                       hover:text-white text-lg transition-colors"
+          >
+            ×
+          </button>
+        )}
 
-          return (
-            <div
-              key={course.slug}
-              onClick={() => navigate(
-                `/${course.domain}/${course.topic}/${course.slug}/story`
-              )}
-              className="bg-gray-900 border border-gray-800 rounded-2xl p-5 
-                         cursor-pointer hover:border-blue-500 
-                         transition-all duration-200 active:scale-95"
+        {/* Search history dropdown */}
+        {showHistory && history.length > 0 && (
+          <div className="absolute top-full left-0 right-0 mt-1 bg-gray-900
+                          border border-gray-800 rounded-xl overflow-hidden z-10 shadow-xl">
+            <div className="flex items-center justify-between px-3 pt-2 pb-1">
+              <span className="text-gray-600 text-xs uppercase tracking-widest">Recent</span>
+              <button
+                onClick={handleClearHistory}
+                className="text-gray-600 hover:text-gray-400 text-xs transition-colors"
+              >
+                Clear
+              </button>
+            </div>
+            {history.map((item, i) => (
+              <button
+                key={i}
+                onClick={() => handleHistoryClick(item)}
+                className="w-full text-left px-3 py-2 text-sm text-gray-400
+                           hover:bg-gray-800 hover:text-white transition-colors flex items-center gap-2"
+              >
+                <span className="text-gray-600 text-xs">↺</span>
+                {item}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Search hint */}
+      {!isSearching && (
+        <p className="text-gray-600 text-xs mb-4">
+          Search by concept, question, or misconception — e.g. "heavier things fall faster"
+        </p>
+      )}
+
+      {/* Domain filter chips */}
+      <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
+        {DOMAINS.map(domain => (
+          <button
+            key={domain.key ?? 'all'}
+            onClick={() => setActiveDomain(domain.key)}
+            className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full
+                        transition-all duration-200
+                        ${activeDomain === domain.key
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-900 border border-gray-800 text-gray-400 hover:border-gray-600 hover:text-white'
+                        }`}
+          >
+            {domain.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Search result count */}
+      {isSearching && (
+        <p className="text-gray-500 text-xs mb-4">
+          {hasResults
+            ? `${totalResults} result${totalResults !== 1 ? 's' : ''} for "${query}"${activeDomain ? ` in ${activeDomain.replace('-', ' ')}` : ''}`
+            : `No results for "${query}"`}
+        </p>
+      )}
+
+      {/* Did you mean */}
+      {isSearching && !hasResults && suggestion && (
+        <div className="mb-5">
+          <p className="text-gray-500 text-sm">
+            Did you mean{' '}
+            <button
+              onClick={() => { setQuery(suggestion); setShowHistory(false) }}
+              className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
             >
-              {/* Domain tag */}
-              <span className="text-xs font-semibold text-blue-400 uppercase tracking-widest">
-                {course.domain.replace('-', ' ')} · {course.topic.replace(/-/g, ' ')}
-              </span>
+              {suggestion}
+            </button>
+            ?
+          </p>
+        </div>
+      )}
 
-              {/* Title */}
-              <h2 className="text-white font-bold text-lg mt-1 leading-snug">
-                {course.titleDisplay}
-              </h2>
+      {/* No results state */}
+      {isSearching && !hasResults && (
+        <div className="text-center py-16">
+          <p className="text-3xl mb-3">🔭</p>
+          <p className="text-white font-semibold mb-1">Nothing found</p>
+          <p className="text-gray-500 text-sm">
+            Try a concept, a question, or a common misconception
+          </p>
+        </div>
+      )}
 
-              {/* Tagline */}
-              <p className="text-gray-400 text-sm mt-1">{course.tagline}</p>
-
-              {/* Status row */}
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center gap-2">
-                  {badge && (
-                    <span className="text-yellow-400 text-lg">🏆</span>
-                  )}
-                  {completed && !badge && (
-                    <span className="text-gray-500 text-xs">Completed</span>
-                  )}
-                  {started && !completed && (
-                    <span className="text-blue-400 text-xs">In progress</span>
-                  )}
-                  {!started && (
-                    <span className="text-gray-600 text-xs">Not started</span>
-                  )}
-                </div>
-
-                {/* Level indicators */}
-                <div className="flex gap-1">
-                  {[1, 2, 3].map(lvl => {
-                    const score = progress?.levelScores?.[lvl]
-                    const unlocked = progress?.levelsUnlocked?.includes(lvl)
-                    return (
-                      <div
-                        key={lvl}
-                        className={`w-6 h-6 rounded-full text-xs font-bold 
-                                    flex items-center justify-center
-                                    ${score >= 0.7
-                                      ? 'bg-blue-500 text-white'
-                                      : unlocked
-                                        ? 'bg-gray-700 text-gray-300'
-                                        : 'bg-gray-800 text-gray-600'
-                                    }`}
-                      >
-                        {lvl}
-                      </div>
-                    )
-                  })}
-                </div>
+      {/* Search results */}
+      {isSearching && hasResults && (
+        <div className="flex flex-col gap-6">
+          {results.tier1.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-blue-400 uppercase tracking-widest mb-3">
+                Best match
+              </p>
+              <div className="flex flex-col gap-4">
+                {results.tier1.map(course => (
+                  <CourseCard
+                    key={course.slug}
+                    course={course}
+                    navigate={navigate}
+                    highlightedTags={getMatchedTags(course, cleanedQuery)}
+                  />
+                ))}
               </div>
             </div>
-          )
-        })}
+          )}
+
+          {results.tier2.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">
+                Related
+              </p>
+              <div className="flex flex-col gap-4">
+                {results.tier2.map(course => (
+                  <CourseCard
+                    key={course.slug}
+                    course={course}
+                    navigate={navigate}
+                    highlightedTags={getMatchedTags(course, cleanedQuery)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Full course list when not searching */}
+      {!isSearching && (
+        <div className="flex flex-col gap-4">
+          {filteredCourses.map(course => (
+            <CourseCard key={course.slug} course={course} navigate={navigate} />
+          ))}
+        </div>
+      )}
+
+    </div>
+  )
+}
+
+function CourseCard({ course, navigate, highlightedTags = [] }) {
+  const progress = loadProgress(course.slug)
+  const badge = progress?.badgeEarned
+  const started = !!progress
+  const completed = progress?.completedAt
+  const highlightSet = new Set(highlightedTags)
+
+  return (
+    <div
+      onClick={() => navigate(`/${course.domain}/${course.topic}/${course.slug}/story`)}
+      className="bg-gray-900 border border-gray-800 rounded-2xl p-5
+                 cursor-pointer hover:border-blue-500
+                 transition-all duration-200 active:scale-95"
+    >
+      {/* Domain tag */}
+      <span className="text-xs font-semibold text-blue-400 uppercase tracking-widest">
+        {course.domain.replace('-', ' ')} · {course.topic.replace(/-/g, ' ')}
+      </span>
+
+      {/* Title */}
+      <h2 className="text-white font-bold text-lg mt-1 leading-snug">
+        {course.titleDisplay}
+      </h2>
+
+      {/* Tagline */}
+      <p className="text-gray-400 text-sm mt-1">{course.tagline}</p>
+
+      {/* Concept tags — highlighted if matched */}
+      {course.tags?.concept?.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-3">
+          {course.tags.concept.slice(0, 4).map(tag => (
+            <span
+              key={tag}
+              className={`text-xs px-2 py-0.5 rounded-full transition-colors
+                ${highlightSet.has(tag)
+                  ? 'text-blue-300 bg-blue-950 border border-blue-800'
+                  : 'text-gray-500 bg-gray-800'
+                }`}
+            >
+              {tag.replace(/-/g, ' ')}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Status row */}
+      <div className="flex items-center justify-between mt-4">
+        <div className="flex items-center gap-2">
+          {badge && <span className="text-yellow-400 text-lg">🏆</span>}
+          {completed && !badge && <span className="text-gray-500 text-xs">Completed</span>}
+          {started && !completed && <span className="text-blue-400 text-xs">In progress</span>}
+          {!started && <span className="text-gray-600 text-xs">Not started</span>}
+        </div>
+
+        <div className="flex gap-1">
+          {[1, 2, 3].map(lvl => {
+            const score = progress?.levelScores?.[lvl]
+            const unlocked = progress?.levelsUnlocked?.includes(lvl)
+            return (
+              <div
+                key={lvl}
+                className={`w-6 h-6 rounded-full text-xs font-bold
+                            flex items-center justify-center
+                            ${score >= 0.7
+                              ? 'bg-blue-500 text-white'
+                              : unlocked
+                                ? 'bg-gray-700 text-gray-300'
+                                : 'bg-gray-800 text-gray-600'
+                            }`}
+              >
+                {lvl}
+              </div>
+            )
+          })}
+        </div>
       </div>
     </div>
   )

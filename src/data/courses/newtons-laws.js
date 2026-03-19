@@ -7,6 +7,49 @@ const newtonsLaws = {
     titleDisplay: "The Three Rules That Govern Every Push and Pull",
     tagline: "Why everything that moves — moves the way it does.",
 
+    // ── Search Tags ───────────────────────────────────────
+    tags: {
+        concept: [
+            "newtons-laws",
+            "inertia",
+            "force",
+            "mass",
+            "acceleration",
+            "friction",
+            "free-body-diagram",
+            "net-force",
+            "weight",
+            "action-reaction"
+        ],
+        aliases: [
+            "newton",
+            "newtons first law",
+            "newtons second law",
+            "newtons third law",
+            "f equals ma",
+            "force mass acceleration",
+            "why things move",
+            "why things stop",
+            "action reaction",
+            "inertia explained",
+            "why friction stops things",
+            "classical mechanics",
+            "forces explained",
+            "how rockets work",
+            "why seatbelts work",
+            "mass vs weight"
+        ],
+        misconceptions: [
+            "objects need force to keep moving",
+            "heavier objects fall faster",
+            "action reaction forces cancel out",
+            "rockets need air to push against",
+            "constant speed requires constant force",
+            "mass and weight are the same thing"
+        ]
+    },
+
+
     // ── Story ─────────────────────────────────────────────
     story: `Imagine you're sitting in a perfectly smooth train that's moving at constant speed. You close your eyes. You feel nothing. No push, no pull. From your body's perspective, you might as well be standing still. This isn't a trick — it's Newton's First Law. An object that isn't being pushed or pulled will keep doing exactly what it's already doing, forever. Moving stays moving. Still stays still. We call this inertia.
 

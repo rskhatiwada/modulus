@@ -14,7 +14,8 @@ export default function StoryScreen() {
 
   const course = courses.find(c => c.slug === slug)
 
-  // Scroll gate — unlocks top button when bottom sentinel is visible
+  const hasContent = !!course?.story   // ← single flag drives everything
+
   useEffect(() => {
     if (!bottomRef.current) return
     const observer = new IntersectionObserver(
@@ -25,20 +26,18 @@ export default function StoryScreen() {
     return () => observer.disconnect()
   }, [course])
 
-  // Progress dots — fixed scroll math
   useEffect(() => {
     function handleScroll() {
-      if (!storyRef.current) return                          // ← null guard fix
+      if (!storyRef.current) return
       const rect = storyRef.current.getBoundingClientRect()
       const elementHeight = storyRef.current.offsetHeight
-      // progress: 0 when story top hits viewport bottom, 1 when story bottom hits viewport top
       const progress = Math.min(1, Math.max(0,
         (window.innerHeight - rect.top) / (elementHeight + window.innerHeight)
       ))
       setScrollProgress(progress)
     }
     window.addEventListener('scroll', handleScroll, { passive: true })
-    handleScroll()                                           // ← run once on mount
+    handleScroll()
     return () => window.removeEventListener('scroll', handleScroll)
   }, [course])
 
@@ -57,16 +56,13 @@ export default function StoryScreen() {
   }
 
   const paragraphs = course.story
-    .split('\n\n')
-    .map(p => p.trim())
-    .filter(Boolean)
+    ? course.story.split('\n\n').map(p => p.trim()).filter(Boolean)
+    : []
 
-  const wordCount = paragraphs.join(' ').split(/\s+/).length
+  const wordCount = paragraphs.join(' ').split(/\s+/).filter(Boolean).length
   const readMins = Math.max(1, Math.round(wordCount / 200))
-
   const totalDots = paragraphs.length
   const filledDots = Math.round(scrollProgress * totalDots)
-
   const heroUrl = getQuestionImage(slug, 'img-newtons-laws')
 
   return (
@@ -82,17 +78,19 @@ export default function StoryScreen() {
           ← Back
         </button>
 
-        <button
-          onClick={handleStart}
-          disabled={!hasRead}
-          className={`absolute top-0 right-0 text-sm font-semibold px-4 py-1 rounded-xl transition-all duration-200
-            ${hasRead
-              ? 'bg-blue-600 hover:bg-blue-500 text-white active:scale-95'
-              : 'bg-gray-800 text-gray-600 cursor-not-allowed'
-            }`}
-        >
-          Start Quiz →
-        </button>
+        {hasContent && (
+          <button
+            onClick={handleStart}
+            disabled={!hasRead}
+            className={`absolute top-0 right-0 text-sm font-semibold px-4 py-1 rounded-xl transition-all duration-200
+              ${hasRead
+                ? 'bg-blue-600 hover:bg-blue-500 text-white active:scale-95'
+                : 'bg-gray-800 text-gray-600 cursor-not-allowed'
+              }`}
+          >
+            Start Quiz →
+          </button>
+        )}
       </div>
 
       {/* Domain tag */}
@@ -108,71 +106,81 @@ export default function StoryScreen() {
       {/* Tagline + read time */}
       <div className="flex items-center justify-between mt-1">
         <p className="text-gray-400 text-sm">{course.tagline}</p>
-        <span className="text-gray-600 text-xs shrink-0 ml-4">{readMins} min read</span>
+        {hasContent && (
+          <span className="text-gray-600 text-xs shrink-0 ml-4">{readMins} min read</span>
+        )}
       </div>
 
       {/* Divider */}
       <div className="border-t border-gray-800 my-6" />
 
-      {/* Story nudge */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 mb-4">
-        <p className="text-gray-300 text-sm leading-relaxed">
-          Read this{' '}
-          <span className="text-blue-400 font-semibold">{readMins} min story</span>
-          {' '}to understand the secret sauce of{' '}
-          <span className="text-white font-semibold">{course.titleDisplay}</span>
-          . We promise, it is worth it. 🔥
-        </p>
-      </div>
+      {/* Coming soon — replaces everything below when no content */}
+      {!hasContent ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <p className="text-4xl mb-4">🚧</p>
+          <p className="text-white font-bold text-lg mb-2">Course in Development</p>
+          <p className="text-gray-500 text-sm max-w-xs">
+            Our team is building this course. Check back soon — it'll be worth the wait.
+          </p>
+        </div>
+      ) : (
+        <>
+            {/* Story nudge */}
+            <div className="bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 mb-4">
+              <p className="text-gray-300 text-sm leading-relaxed">
+                Read this{' '}
+                <span className="text-blue-400 font-semibold">{readMins} min story</span>
+                {' '}to understand the secret sauce of{' '}
+                <span className="text-white font-semibold">{course.titleDisplay}</span>
+                . We promise, it is worth it. 🔥
+              </p>
+            </div>
 
-      {/* Hero image */}
-      <img
-        src={heroUrl}
-        alt={course.titleDisplay}
-        loading="eager"
-        className="w-full rounded-xl object-cover mb-6"
-        style={{ aspectRatio: '16/9', maxHeight: '200px' }}
-      />
-
-      {/* Story + progress dots */}
-      <div className="flex gap-3">
-
-        {/* Progress dots */}
-        <div className="flex flex-col items-center gap-1 pt-1 shrink-0">
-          {Array.from({ length: totalDots }).map((_, i) => (
-            <div
-              key={i}
-              className={`w-1.5 h-1.5 rounded-full transition-all duration-300
-                ${i < filledDots ? 'bg-blue-500' : 'bg-gray-800'}`}
+            {/* Hero image */}
+            <img
+              src={heroUrl}
+              alt={course.titleDisplay}
+              loading="eager"
+              className="w-full rounded-xl object-cover mb-6"
+              style={{ aspectRatio: '16/9', maxHeight: '200px' }}
             />
-          ))}
-        </div>
 
-        {/* Story paragraphs */}
-        <div ref={storyRef} className="flex flex-col gap-5 flex-1">
-          {paragraphs.map((para, i) => (
-            <p key={i} className="text-gray-300 text-base leading-relaxed">
-              {para}
-            </p>
-          ))}
-        </div>
+            {/* Story + progress dots */}
+            <div className="flex gap-3">
+              <div className="flex flex-col items-center gap-1 pt-1 shrink-0">
+                {Array.from({ length: totalDots }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`w-1.5 h-1.5 rounded-full transition-all duration-300
+                    ${i < filledDots ? 'bg-blue-500' : 'bg-gray-800'}`}
+                  />
+                ))}
+              </div>
+              <div ref={storyRef} className="flex flex-col gap-5 flex-1">
+                {paragraphs.map((para, i) => (
+                  <p key={i} className="text-gray-300 text-base leading-relaxed">
+                    {para}
+                  </p>
+                ))}
+              </div>
+            </div>
 
-      </div>
+            {/* Sentinel */}
+            <div ref={bottomRef} className="h-1" />
 
-      {/* Sentinel */}
-      <div ref={bottomRef} className="h-1" />
-
-      {/* Bottom Start Quiz button */}
-      <div className="mt-12 pb-10">
-        <button
-          onClick={handleStart}
-          className="w-full bg-blue-600 hover:bg-blue-500 active:scale-95
-                     text-white font-bold text-lg py-3 rounded-2xl
-                     transition-all duration-200"
-        >
-          Start Quiz →
-        </button>
-      </div>
+            {/* Bottom Start Quiz button */}
+            <div className="mt-12 pb-10">
+              <button
+                onClick={handleStart}
+                className="w-full bg-blue-600 hover:bg-blue-500 active:scale-95
+                         text-white font-bold text-lg py-3 rounded-2xl
+                         transition-all duration-200"
+              >
+                Start Quiz →
+              </button>
+            </div>
+        </>
+      )}
 
     </div>
   )

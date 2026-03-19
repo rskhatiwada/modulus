@@ -81,6 +81,24 @@ export default function QuizScreen() {
     </div>
   )
 
+  {/* ADD THIS — right after the !course check */ }
+  if (!course.questions || course.questions.length === 0) return (
+    <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center px-4 text-center">
+      <p className="text-4xl mb-4">🚧</p>
+      <p className="text-white font-bold text-lg mb-2">Quiz Not Available Yet</p>
+      <p className="text-gray-500 text-sm mb-8">
+        This course is still being developed.
+      </p>
+      <button
+        onClick={() => navigate(`/${domain}/${topic}/${slug}/story`)}
+        className="text-blue-400 text-sm hover:text-blue-300 transition-colors"
+      >
+        ← Back to course
+      </button>
+    </div>
+  )
+
+
   if (!isLevelUnlocked(slug, level)) return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
       <div className="text-center">
