@@ -11,6 +11,8 @@ import {
   clearSearchHistory,
 } from '../utils/search'
 
+// ── Constants ────────────────────────────────────────────────────────────────
+
 const HINTS = [
   "Try: 'quantum tunneling'",
   "Try: 'why do things float?'",
@@ -23,16 +25,24 @@ const HINTS = [
 ]
 
 const DOMAINS = [
-  { key: null,               label: 'All' },
-  { key: 'physics',          label: 'Physics' },
-  { key: 'mathematics',      label: 'Maths' },
-  { key: 'biology',          label: 'Biology' },
-  { key: 'chemistry',        label: 'Chemistry' },
+  { key: null, label: 'All', emoji: '✦' },
+  { key: 'physics', label: 'Physics' },
+  { key: 'mathematics', label: 'Maths' },
+  { key: 'biology', label: 'Biology' },
+  { key: 'chemistry', label: 'Chemistry' },
   { key: 'computer-science', label: 'CS' },
-  { key: 'neuroscience',     label: 'Neuro' },
-  { key: 'earth-and-space',  label: 'Space' },
-  { key: 'engineering',      label: 'Eng' },
+  { key: 'neuroscience', label: 'Neuro' },
+  { key: 'earth-and-space', label: 'Space' },
+  { key: 'engineering', label: 'Eng' },
 ]
+
+const STATS = [
+  { value: '139', label: 'Courses' },
+  { value: '8', label: 'Domains' },
+  { value: '15', label: 'Minutes' },
+]
+
+// ── Main Component ────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
   const navigate = useNavigate()
@@ -44,14 +54,27 @@ export default function HomeScreen() {
   const [activeDomain, setActiveDomain] = useState(null)
   const [history, setHistory] = useState([])
   const [showHistory, setShowHistory] = useState(false)
+  const [searchExpanded, setSearchExpanded] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+  const [authModal, setAuthModal] = useState(false)
   const inputRef = useRef(null)
+  const searchSectionRef = useRef(null)
+
+  // Nav scroll detection
+  useEffect(() => {
+    function onScroll() { setScrolled(window.scrollY > 40) }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+
 
   // Load search history on mount
   useEffect(() => {
     setHistory(getSearchHistory())
   }, [])
 
-  // Cycle placeholder hints when not typing
+  // Cycle placeholder hints
   useEffect(() => {
     if (query) return
     const interval = setInterval(() => {
@@ -71,8 +94,6 @@ export default function HomeScreen() {
     const { tier1, tier2, cleanedQuery: cq } = searchCourses(query, activeDomain)
     setResults({ tier1, tier2 })
     setCleanedQuery(cq)
-
-    // Did you mean — only show when no results
     if (!tier1.length && !tier2.length) {
       setSuggestion(didYouMean(query))
     } else {
@@ -80,7 +101,6 @@ export default function HomeScreen() {
     }
   }, [query, activeDomain])
 
-  // Re-filter when domain changes (even without new query)
   useEffect(() => {
     if (!query.trim()) return
     const { tier1, tier2, cleanedQuery: cq } = searchCourses(query, activeDomain)
@@ -91,6 +111,9 @@ export default function HomeScreen() {
   const isSearching = !!query.trim()
   const hasResults = results && (results.tier1.length > 0 || results.tier2.length > 0)
   const totalResults = (results?.tier1?.length || 0) + (results?.tier2?.length || 0)
+  const filteredCourses = activeDomain
+    ? courses.filter(c => c.domain === activeDomain)
+    : courses
 
   function handleQueryChange(val) {
     setQuery(val)
@@ -102,7 +125,6 @@ export default function HomeScreen() {
   }
 
   function handleSearchBlur() {
-    // Delay so clicks on history items register first
     setTimeout(() => setShowHistory(false), 150)
   }
 
@@ -124,193 +146,375 @@ export default function HomeScreen() {
     setHistory([])
   }
 
-  // Filtered full list for domain chip without search
-  const filteredCourses = activeDomain
-    ? courses.filter(c => c.domain === activeDomain)
-    : courses
+  function scrollToSearch() {
+    searchSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    setTimeout(() => inputRef.current?.focus(), 500)
+  }
 
   return (
-    <div className="min-h-screen bg-gray-950 px-3 py-6 max-w-2xl mx-auto">
+    <div className="min-h-screen text-white" style={{ backgroundColor: '#030712' }}>
 
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-white tracking-tight">
-          Scientific<span className="text-blue-500">FREAK</span>
-        </h1>
-        <p className="text-gray-400 mt-1 text-sm">Be an expert in 15 minutes.</p>
-      </div>
+      {/* ── Sticky Nav ──────────────────────────────────────────────────── */}
+      <nav
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300
+          ${scrolled
+            ? 'bg-gray-950/90 backdrop-blur-md border-b border-gray-800/60'
+            : 'bg-transparent'
+          }`}
+      >
+        <div className="max-w-none px-6 sm:px-12 lg:px-24 h-14 flex items-center justify-between">
 
-      {/* Search field */}
-      <div className="relative mb-3">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-base pointer-events-none">
-          🔍
-        </span>
-        <input
-          ref={inputRef}
-          type="text"
-          value={query}
-          onChange={e => handleQueryChange(e.target.value)}
-          onFocus={handleSearchFocus}
-          onBlur={handleSearchBlur}
-          onKeyDown={e => { if (e.key === 'Enter') handleSearchSubmit() }}
-          placeholder={HINTS[hintIndex]}
-          className="w-full bg-gray-900 border border-gray-800 rounded-xl
-                     pl-9 pr-4 py-3 text-white text-sm
-                     placeholder-gray-600 focus:outline-none focus:border-blue-500
-                     transition-colors duration-200"
-        />
-        {query && (
+          {/* Logo */}
           <button
-            onClick={() => { setQuery(''); setSuggestion(null); setResults(null) }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500
-                       hover:text-white text-lg transition-colors"
+            onClick={() => { setQuery(''); setActiveDomain(null); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+            className="text-lg font-bold tracking-tight"
           >
-            ×
+            Scientific<span className="text-blue-500">FREAK</span>
           </button>
+
+          {/* Nav right */}
+          <div className="flex items-center gap-2">
+            {/* Nav search icon — scrolls to search bar */}
+            <button
+              onClick={scrollToSearch}
+              className="w-8 h-8 flex items-center justify-center rounded-lg
+                         text-gray-400 hover:text-white hover:bg-gray-800
+                         transition-all duration-200"
+              aria-label="Search"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M11 11L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </button>
+
+            {/* Sign In */}
+            <button
+              onClick={() => setAuthModal(true)}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg
+                         border border-gray-700 text-gray-300
+                         hover:border-blue-500 hover:text-white
+                         transition-all duration-200"
+            >
+              Sign In
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* ── Hero — full width, no max-w constraint ── */}
+      <section className="relative pt-24 pb-8 px-6 sm:px-12 lg:px-24 overflow-hidden">
+
+
+
+        {/* Inner content — max-w on desktop so text doesn't stretch too wide */}
+        <div className="max-w-3xl">
+
+          {/* Domain pill */}
+          <div className="inline-flex items-center gap-1.5 bg-blue-950/60 border border-blue-900/60
+                    text-blue-400 text-xs font-semibold px-3 py-1 rounded-full mb-5">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+            STEM · 8 Domains · Free
+          </div>
+
+          {/* Headline — larger on wide screens */}
+          <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black leading-tight tracking-tight mb-3 whitespace-nowrap">
+            Be an expert <span className="text-blue-500">in 15 mins.</span>
+          </h1>
+
+          {/* Subline */}
+          <p className="text-gray-400 text-base sm:text-lg leading-relaxed mb-7 max-w-lg">
+            Turning complex ideas to everyday knowledge.
+          </p>
+
+          {/* CTA */}
+          <div className="flex items-center gap-3 mb-10">
+            <button
+              onClick={scrollToSearch}
+              className="bg-blue-600 hover:bg-blue-500 active:scale-95
+                   text-white font-bold text-sm px-5 py-2.5 rounded-xl
+                   transition-all duration-200"
+            >
+              Start Learning →
+            </button>
+            <button
+              onClick={() => setAuthModal(true)}
+              className="text-gray-400 hover:text-white text-sm font-medium
+                   transition-colors duration-200"
+            >
+              Sign up free
+            </button>
+          </div>
+
+          {/* Stats row */}
+          <div className="flex items-center gap-6">
+            {STATS.map((stat, i) => (
+              <div key={i} className="flex flex-col">
+                <span className="text-2xl font-black text-white leading-none">
+                  {stat.value}
+
+                </span>
+                <span className="text-gray-600 text-xs mt-0.5">{stat.label}</span>
+              </div>
+            ))}
+            <div className="h-8 w-px bg-gray-800 mx-1" />
+            <p className="text-gray-600 text-xs leading-relaxed">
+              Built for curious minds.<br />No STEM background needed.
+            </p>
+          </div>
+
+        </div>
+      </section>
+
+
+
+      {/* ── Search + Course List ─────────────────────────────────────────── */}
+      <section
+        ref={searchSectionRef}
+        className="max-w-3xl mx-auto px-3 pt-4 pb-20"
+        style={{ backgroundColor: '#030712' }}
+      >
+
+        {/* Section label */}
+        <p className="text-xs font-semibold text-gray-600 uppercase tracking-widest mb-4">
+          All Courses
+        </p>
+
+        {/* Search field */}
+        <div className="relative mb-3">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-base pointer-events-none">
+            🔍
+          </span>
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={e => handleQueryChange(e.target.value)}
+            onFocus={handleSearchFocus}
+            onBlur={handleSearchBlur}
+            onKeyDown={e => { if (e.key === 'Enter') handleSearchSubmit() }}
+            placeholder={HINTS[hintIndex]}
+            className="w-full bg-gray-900 border border-gray-800 rounded-xl
+                       pl-9 pr-4 py-3 text-white text-sm
+                       placeholder-gray-600 focus:outline-none focus:border-blue-500
+                       transition-colors duration-200"
+          />
+          {query && (
+            <button
+              onClick={() => { setQuery(''); setSuggestion(null); setResults(null) }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500
+                         hover:text-white text-lg transition-colors"
+            >
+              ×
+            </button>
+          )}
+
+          {/* Search history dropdown */}
+          {showHistory && history.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-gray-900
+                            border border-gray-800 rounded-xl overflow-hidden z-10 shadow-xl">
+              <div className="flex items-center justify-between px-3 pt-2 pb-1">
+                <span className="text-gray-600 text-xs uppercase tracking-widest">Recent</span>
+                <button
+                  onClick={handleClearHistory}
+                  className="text-gray-600 hover:text-gray-400 text-xs transition-colors"
+                >
+                  Clear
+                </button>
+              </div>
+              {history.map((item, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleHistoryClick(item)}
+                  className="w-full text-left px-3 py-2 text-sm text-gray-400
+                             hover:bg-gray-800 hover:text-white transition-colors flex items-center gap-2"
+                >
+                  <span className="text-gray-600 text-xs">↺</span>
+                  {item}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Search hint */}
+        {!isSearching && (
+          <p className="text-gray-600 text-xs mb-4">
+            Search by concept, question, or misconception — e.g. "heavier things fall faster"
+          </p>
         )}
 
-        {/* Search history dropdown */}
-        {showHistory && history.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-gray-900
-                          border border-gray-800 rounded-xl overflow-hidden z-10 shadow-xl">
-            <div className="flex items-center justify-between px-3 pt-2 pb-1">
-              <span className="text-gray-600 text-xs uppercase tracking-widest">Recent</span>
+        {/* Domain filter chips */}
+        <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
+          {DOMAINS.map(domain => (
+            <button
+              key={domain.key ?? 'all'}
+              onClick={() => setActiveDomain(domain.key)}
+              className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full
+                          transition-all duration-200 flex items-center gap-1.5
+                          ${activeDomain === domain.key
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-900 border border-gray-800 text-gray-400 hover:border-gray-600 hover:text-white'
+                }`}
+            >
+              <span>{domain.emoji}</span>
+              {domain.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Search result count */}
+        {isSearching && (
+          <p className="text-gray-500 text-xs mb-4">
+            {hasResults
+              ? `${totalResults} result${totalResults !== 1 ? 's' : ''} for "${query}"${activeDomain ? ` in ${activeDomain.replace('-', ' ')}` : ''}`
+              : `No results for "${query}"`}
+          </p>
+        )}
+
+        {/* Did you mean */}
+        {isSearching && !hasResults && suggestion && (
+          <div className="mb-5">
+            <p className="text-gray-500 text-sm">
+              Did you mean{' '}
               <button
-                onClick={handleClearHistory}
-                className="text-gray-600 hover:text-gray-400 text-xs transition-colors"
+                onClick={() => { setQuery(suggestion); setShowHistory(false) }}
+                className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
               >
-                Clear
+                {suggestion}
               </button>
-            </div>
-            {history.map((item, i) => (
-              <button
-                key={i}
-                onClick={() => handleHistoryClick(item)}
-                className="w-full text-left px-3 py-2 text-sm text-gray-400
-                           hover:bg-gray-800 hover:text-white transition-colors flex items-center gap-2"
-              >
-                <span className="text-gray-600 text-xs">↺</span>
-                {item}
-              </button>
+              ?
+            </p>
+          </div>
+        )}
+
+        {/* No results */}
+        {isSearching && !hasResults && (
+          <div className="text-center py-16">
+            <p className="text-3xl mb-3">🔭</p>
+            <p className="text-white font-semibold mb-1">Nothing found</p>
+            <p className="text-gray-500 text-sm">
+              Try a concept, a question, or a common misconception
+            </p>
+          </div>
+        )}
+
+        {/* Search results */}
+        {isSearching && hasResults && (
+          <div className="flex flex-col gap-6">
+            {results.tier1.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-blue-400 uppercase tracking-widest mb-3">
+                  Best match
+                </p>
+                <div className="flex flex-col gap-4">
+                  {results.tier1.map(course => (
+                    <CourseCard
+                      key={course.slug}
+                      course={course}
+                      navigate={navigate}
+                      highlightedTags={getMatchedTags(course, cleanedQuery)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+            {results.tier2.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">
+                  Related
+                </p>
+                <div className="flex flex-col gap-4">
+                  {results.tier2.map(course => (
+                    <CourseCard
+                      key={course.slug}
+                      course={course}
+                      navigate={navigate}
+                      highlightedTags={getMatchedTags(course, cleanedQuery)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Full course list */}
+        {!isSearching && (
+          <div className="flex flex-col gap-4">
+            {filteredCourses.map(course => (
+              <CourseCard key={course.slug} course={course} navigate={navigate} />
             ))}
           </div>
         )}
-      </div>
 
-      {/* Search hint */}
-      {!isSearching && (
-        <p className="text-gray-600 text-xs mb-4">
-          Search by concept, question, or misconception — e.g. "heavier things fall faster"
-        </p>
-      )}
+      </section>
 
-      {/* Domain filter chips */}
-      <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
-        {DOMAINS.map(domain => (
-          <button
-            key={domain.key ?? 'all'}
-            onClick={() => setActiveDomain(domain.key)}
-            className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full
-                        transition-all duration-200
-                        ${activeDomain === domain.key
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-900 border border-gray-800 text-gray-400 hover:border-gray-600 hover:text-white'
-                        }`}
-          >
-            {domain.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Search result count */}
-      {isSearching && (
-        <p className="text-gray-500 text-xs mb-4">
-          {hasResults
-            ? `${totalResults} result${totalResults !== 1 ? 's' : ''} for "${query}"${activeDomain ? ` in ${activeDomain.replace('-', ' ')}` : ''}`
-            : `No results for "${query}"`}
-        </p>
-      )}
-
-      {/* Did you mean */}
-      {isSearching && !hasResults && suggestion && (
-        <div className="mb-5">
-          <p className="text-gray-500 text-sm">
-            Did you mean{' '}
+      {/* ── Footer ──────────────────────────────────────────────────────── */}
+      <footer className="border-t border-gray-800/60 px-3 py-8 max-w-2xl mx-auto">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-bold">
+              Scientific<span className="text-blue-500">FREAK</span>
+            </p>
+            <p className="text-gray-600 text-xs mt-0.5">Be an expert in 15 mins.</p>
+          </div>
+          <div className="flex items-center gap-4">
             <button
-              onClick={() => { setQuery(suggestion); setShowHistory(false) }}
-              className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+              onClick={() => setAuthModal(true)}
+              className="text-gray-600 hover:text-white text-xs transition-colors"
             >
-              {suggestion}
+              Sign Up
             </button>
-            ?
-          </p>
+            <a
+              href="mailto:content@scientificfreak.com"
+              className="text-gray-600 hover:text-white text-xs transition-colors"
+            >
+              Contact
+            </a>
+            <span className="text-gray-700 text-xs">© 2026</span>
+          </div>
         </div>
-      )}
+      </footer>
 
-      {/* No results state */}
-      {isSearching && !hasResults && (
-        <div className="text-center py-16">
-          <p className="text-3xl mb-3">🔭</p>
-          <p className="text-white font-semibold mb-1">Nothing found</p>
-          <p className="text-gray-500 text-sm">
-            Try a concept, a question, or a common misconception
-          </p>
-        </div>
-      )}
-
-      {/* Search results */}
-      {isSearching && hasResults && (
-        <div className="flex flex-col gap-6">
-          {results.tier1.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-blue-400 uppercase tracking-widest mb-3">
-                Best match
-              </p>
-              <div className="flex flex-col gap-4">
-                {results.tier1.map(course => (
-                  <CourseCard
-                    key={course.slug}
-                    course={course}
-                    navigate={navigate}
-                    highlightedTags={getMatchedTags(course, cleanedQuery)}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {results.tier2.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">
-                Related
-              </p>
-              <div className="flex flex-col gap-4">
-                {results.tier2.map(course => (
-                  <CourseCard
-                    key={course.slug}
-                    course={course}
-                    navigate={navigate}
-                    highlightedTags={getMatchedTags(course, cleanedQuery)}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Full course list when not searching */}
-      {!isSearching && (
-        <div className="flex flex-col gap-4">
-          {filteredCourses.map(course => (
-            <CourseCard key={course.slug} course={course} navigate={navigate} />
-          ))}
+      {/* ── Auth Modal ───────────────────────────────────────────────────── */}
+      {authModal && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50
+                     flex items-center justify-center px-4"
+          onClick={() => setAuthModal(false)}
+        >
+          <div
+            className="bg-gray-900 border border-gray-800 rounded-2xl p-7
+                       max-w-sm w-full text-center"
+            onClick={e => e.stopPropagation()}
+          >
+            <p className="text-2xl mb-3">🔐</p>
+            <h2 className="text-white font-bold text-lg mb-2">Accounts Coming Soon</h2>
+            <p className="text-gray-400 text-sm leading-relaxed mb-6">
+              We're building authentication now. Your progress is already saved
+              locally on this device — nothing is lost.
+            </p>
+            <button
+              onClick={() => setAuthModal(false)}
+              className="w-full bg-blue-600 hover:bg-blue-500 active:scale-95
+                         text-white font-bold py-2.5 rounded-xl
+                         transition-all duration-200 text-sm"
+            >
+              Got it, continue learning
+            </button>
+            <p className="text-gray-600 text-xs mt-3">
+              No account needed to start any course.
+            </p>
+          </div>
         </div>
       )}
 
     </div>
   )
 }
+
+// ── Course Card ───────────────────────────────────────────────────────────────
 
 function CourseCard({ course, navigate, highlightedTags = [] }) {
   const progress = loadProgress(course.slug)
@@ -328,7 +532,7 @@ function CourseCard({ course, navigate, highlightedTags = [] }) {
     >
       {/* Domain tag */}
       <span className="text-xs font-semibold text-blue-400 uppercase tracking-widest">
-        {course.domain.replace('-', ' ')} · {course.topic.replace(/-/g, ' ')}
+        {course.domain.replace(/-/g, ' ')} · {course.topic.replace(/-/g, ' ')}
       </span>
 
       {/* Title */}
@@ -339,7 +543,7 @@ function CourseCard({ course, navigate, highlightedTags = [] }) {
       {/* Tagline */}
       <p className="text-gray-400 text-sm mt-1">{course.tagline}</p>
 
-      {/* Concept tags — highlighted if matched */}
+      {/* Concept tags */}
       {course.tags?.concept?.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-3">
           {course.tags.concept.slice(0, 4).map(tag => (
