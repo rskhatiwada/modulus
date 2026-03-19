@@ -259,7 +259,7 @@ export default function HomeScreen() {
             ))}
             <div className="h-8 w-px bg-gray-800 mx-1" />
             <p className="text-gray-600 text-xs leading-relaxed">
-              Built for the Curious<br />With Proprietary <Algorithm></Algorithm>.
+              Built for the Curious<br />With Proprietary Algorithm.
             </p>
           </div>
 
