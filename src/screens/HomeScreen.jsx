@@ -210,7 +210,7 @@ export default function HomeScreen() {
       </nav>
 
       {/* ── Hero — full width, no max-w constraint ── */}
-      <section className="relative pt-24 pb-8 px-6 sm:px-12 lg:px-24 overflow-hidden">
+      <section className="relative pt-8 pb-8 px-6 sm:px-12 lg:px-24 overflow-hidden">
 
 
 
@@ -219,7 +219,7 @@ export default function HomeScreen() {
 
           {/* Domain pill */}
           <div className="inline-flex items-center gap-1.5 bg-blue-950/60 border border-blue-900/60
-                    text-blue-400 text-xs font-semibold px-3 py-1 rounded-full mb-5">
+                text-blue-400 text-xs font-semibold px-3 py-1 rounded-full mt-0 mb-5">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
             STEM · AI-Powered · Futuristic
           </div>
@@ -482,8 +482,8 @@ export default function HomeScreen() {
       </section>
 
       {/* ── Footer ──────────────────────────────────────────────────────── */}
-      <footer className="border-t border-gray-800/60 px-3 py-8 max-w-2xl mx-auto">
-        <div className="flex items-center justify-between">
+      <footer className="border-t border-gray-800/60 py-8">
+        <div className="max-w-none px-6 sm:px-12 lg:px-24 flex items-center justify-between">
           <div>
             <p className="text-sm font-bold">
               Scientific<span className="text-blue-500">FREAK</span>
@@ -497,12 +497,7 @@ export default function HomeScreen() {
             >
               Sign Up
             </button>
-            <a
-              href="mailto:content@scientificfreak.com"
-              className="text-gray-600 hover:text-white text-xs transition-colors"
-            >
-              Contact
-            </a>
+            <a href="mailto:content@scientificfreak.com" className="text-gray-600 hover:text-white text-xs transition-colors">Contact</a>
             <span className="text-gray-700 text-xs">© 2026</span>
           </div>
         </div>

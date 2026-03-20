@@ -66,7 +66,7 @@ export default function StoryScreen() {
   const heroUrl = getQuestionImage(slug, 'img-newtons-laws')
 
   return (
-    <div className="min-h-screen bg-gray-950 px-3 py-6 max-w-2xl mx-auto">
+    <div className="min-h-screen bg-gray-950 px-4 py-6 max-w-3xl mx-auto">
 
       {/* Back button + top Start Quiz */}
       <div className="relative mb-2">

@@ -185,7 +185,7 @@ export default function QuizScreen() {
   const questionImageUrl = getQuestionImage(slug, question.image ?? null)
 
   return (
-    <div className="min-h-screen bg-gray-950 px-3 py-6 max-w-2xl mx-auto">
+    <div className="min-h-screen bg-gray-950 px-4 py-6 max-w-3xl mx-auto">
 
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
@@ -249,7 +249,7 @@ export default function QuizScreen() {
             <button
               key={i}
               onClick={() => handleSelect(i)}
-              className={`${style} rounded-xl px-3 py-3 text-left text-sm font-medium transition-all duration-150`}
+              className={`${style} rounded-xl px-4 py-3 text-left text-sm font-medium transition-all duration-150`}
             >
               <span className="text-gray-500 mr-3">{['A', 'B', 'C', 'D'][i]}.</span>
               <MathText text={option} />
