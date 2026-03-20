@@ -184,9 +184,9 @@ export default function HomeScreen() {
             {/* Nav search icon — scrolls to search bar */}
             <button
               onClick={scrollToSearch}
-              className="w-8 h-8 flex items-center justify-center rounded-lg
-                         text-gray-400 hover:text-white hover:bg-gray-800
-                         transition-all duration-200"
+              className="hidden md:flex w-8 h-8 items-center justify-center rounded-lg
+             text-gray-400 hover:text-white hover:bg-gray-800
+             transition-all duration-200"
               aria-label="Search"
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
