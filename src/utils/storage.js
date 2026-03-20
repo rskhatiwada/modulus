@@ -203,3 +203,50 @@ export function getLevelScore(slug, level) {
   if (!progress) return null
   return progress.levelScores[level]
 }
+
+// ── Get all course progress (for My Learning screen) ─────
+export function getAllProgress() {
+  const all = []
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i)
+    if (k.startsWith('sf_course_')) {
+      try {
+        const data = JSON.parse(localStorage.getItem(k))
+        if (data?.course) all.push(data)
+      } catch { }
+    }
+  }
+  return all
+}
+
+// ── Compute resume route for a course ────────────────────
+export function getResumeRoute(slug, domain, topic) {
+  const p = loadProgress(slug)
+  const base = `/${domain}/${topic}/${slug}`
+  if (!p) return `${base}/story`
+
+  // Boss done
+  if (p.completedAt) return `${base}/result`
+
+  // All 3 levels scored, go to boss
+  if (p.levelScores[3] !== null) return `${base}/boss`
+
+  // Level 3 unlocked
+  if (p.levelsUnlocked.includes(3) && p.levelScores[3] === null) return `${base}/quiz/level-3`
+
+  // Blitz done = blitz array has 10+ entries
+  const blitzDone = (p.blitz || []).length >= 10
+
+  // Level 2 unlocked
+  if (p.levelsUnlocked.includes(2)) {
+    if (p.levelScores[2] === null) return `${base}/quiz/level-2`
+  }
+
+  // Level 1 scored, blitz not done
+  if (p.levelScores[1] !== null && !blitzDone) return `${base}/blitz`
+
+  // Level 1 in progress or not started
+  if (p.levelScores[1] === null) return `${base}/quiz/level-1`
+
+  return `${base}/story`
+}

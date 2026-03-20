@@ -1,14 +1,15 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import MainLayout from './components/MainLayout'
 import HomeScreen from './screens/HomeScreen'
+import LearnScreen from './screens/LearnScreen'
 import StoryScreen from './screens/StoryScreen'
 import QuizScreen from './screens/QuizScreen'
 import BlitzScreen from './screens/BlitzScreen'
 import BossScreen from './screens/BossScreen'
 import ResultScreen from './screens/ResultScreen'
+import CourseReportScreen from './screens/CourseReportScreen'
 
 // Stub screens — replace with real ones later
-function LearnScreen() { return <div className="p-6 text-white">My Learning — coming soon</div> }
 function SearchScreen() { return <div className="p-6 text-white">Search — coming soon</div> }
 function ProfileScreen() { return <div className="p-6 text-white">Profile — coming soon</div> }
 
@@ -32,7 +33,7 @@ export default function App() {
           <Route path="/:domain/:topic/:slug/blitz" element={<BlitzScreen />} />
           <Route path="/:domain/:topic/:slug/boss" element={<BossScreen />} />
           <Route path="/:domain/:topic/:slug/result" element={<ResultScreen />} />
-
+          <Route path="/:domain/:topic/:slug/report" element={<CourseReportScreen />} />
         </Routes>
       </div>
     </BrowserRouter>
