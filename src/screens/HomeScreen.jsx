@@ -210,7 +210,7 @@ export default function HomeScreen() {
       </nav>
 
       {/* ── Hero — full width, no max-w constraint ── */}
-      <section className="relative pt-8 pb-8 px-6 sm:px-12 lg:px-24 overflow-hidden">
+      <section className="relative pt-16 md:pt-8 pb-8 px-6 sm:px-12 lg:px-24 overflow-hidden">
 
 
 
