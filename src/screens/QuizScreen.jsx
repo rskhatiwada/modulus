@@ -158,7 +158,24 @@ export default function QuizScreen() {
     answersRef.current = updated
     setAnswers(updated)
     setConfidence(signal)
-    setShowExplanation(true)
+    const skipExplanation = correct && signal === 'knew_it'
+    if (skipExplanation) {
+      // advance immediately, no explanation shown
+      const updated2 = [...answersRef.current]  // already pushed above
+      const score = updated2.filter(a => a.correct).length / updated2.length
+      if (index + 1 < questions.length) {
+        setSelected(null)
+        setConfidence(null)
+        setIndex(index + 1)
+      } else {
+        recordLevelScore(slug, level, score)
+        if (level === 1) navigate(`/${domain}/${topic}/${slug}/blitz`)
+        else if (level === 2) navigate(`/${domain}/${topic}/${slug}/quiz/level-3`)
+        else navigate(`/${domain}/${topic}/${slug}/boss`)
+      }
+    } else {
+      setShowExplanation(true)
+    }
   }
 
   function handleNext() {

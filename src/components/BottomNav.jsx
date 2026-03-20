@@ -16,34 +16,36 @@ export default function BottomNav() {
         <>
             {/* ── DESKTOP — top navbar ── */}
             <nav className="hidden md:flex fixed top-0 left-0 right-0 z-50
-                      bg-gray-950/95 backdrop-blur-sm border-b border-gray-800
-                      h-14 items-center justify-between px-8">
+                bg-gray-950/95 backdrop-blur-sm border-b border-gray-800
+                h-14 justify-center">
 
-                {/* Logo left */}
-                <span
-                    onClick={() => navigate('/')}
-                    className="text-white font-bold text-lg cursor-pointer tracking-tight"
-                >
-                    Scientific<span className="text-blue-400">FREAK</span>
-                </span>
+                <div className="max-w-8xl w-full mx-auto px-6 sm:px-12 lg:px-24 flex items-center justify-between">
+                    {/* Logo left */}
+                    <span
+                        onClick={() => navigate('/')}
+                        className="text-white font-bold text-lg cursor-pointer tracking-tight"
+                    >
+                        Scientific<span className="text-blue-400">FREAK</span>
+                    </span>
 
-                {/* Links right */}
-                <div className="flex items-center gap-6">
-                    {tabs.map(({ label, icon: Icon, path }) => {
-                        const active = pathname === path
-                        return (
-                            <button
-                                key={path}
-                                onClick={() => navigate(path)}
-                                className={`flex items-center gap-2 text-sm font-medium
-                            transition-colors duration-150
-                            ${active ? 'text-blue-400' : 'text-gray-400 hover:text-white'}`}
-                            >
-                                <Icon size={16} strokeWidth={active ? 2.2 : 1.8} />
-                                {label}
-                            </button>
-                        )
-                    })}
+                    {/* Links right */}
+                    <div className="flex items-center gap-6">
+                        {tabs.map(({ label, icon: Icon, path }) => {
+                            const active = pathname === path
+                            return (
+                                <button
+                                    key={path}
+                                    onClick={() => navigate(path)}
+                                    className={`flex items-center gap-2 text-sm font-medium
+                        transition-colors duration-150
+                        ${active ? 'text-blue-400' : 'text-gray-400 hover:text-white'}`}
+                                >
+                                    <Icon size={16} strokeWidth={active ? 2.2 : 1.8} />
+                                    {label}
+                                </button>
+                            )
+                        })}
+                    </div>
                 </div>
             </nav>
 

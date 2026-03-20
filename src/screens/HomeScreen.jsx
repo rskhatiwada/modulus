@@ -169,7 +169,7 @@ export default function HomeScreen() {
             : 'bg-transparent'
           }`}
       >
-        <div className="max-w-none px-6 sm:px-12 lg:px-24 h-14 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-6 sm:px-12 lg:px-24 h-14 flex items-center justify-between">
 
           {/* Logo */}
           <button
@@ -210,7 +210,7 @@ export default function HomeScreen() {
       </nav>
 
       {/* ── Hero — full width, no max-w constraint ── */}
-      <section className="relative pt-16 md:pt-8 pb-8 px-6 sm:px-12 lg:px-24 overflow-hidden">
+      <section className="relative pt-16 md:pt-8 pb-8 px-6 sm:px-12 lg:px-24 overflow-hidden max-w-8xl mx-auto">
 
 
 
@@ -483,7 +483,7 @@ export default function HomeScreen() {
 
       {/* ── Footer ──────────────────────────────────────────────────────── */}
       <footer className="border-t border-gray-800/60 py-8">
-        <div className="max-w-none px-6 sm:px-12 lg:px-24 flex items-center justify-between">
+        <div className="max-w-8xl mx-auto px-6 sm:px-12 lg:px-24 flex items-center justify-between">
           <div>
             <p className="text-sm font-bold">
               Scientific<span className="text-blue-500">FREAK</span>
