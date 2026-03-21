@@ -3,13 +3,15 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { courses } from '../data/courses'
 import ProgressBar from '../components/ProgressBar'
 import MathText from '../components/MathText'
-import { getQuestionImage } from '../utils/imageUrl'     // ← ADDED
+import { getQuestionImage } from '../utils/imageUrl'
+import { isQuestionFavorited, toggleQuestionFavorite } from '../utils/storage'
 import {
   recordAnswer,
   recordLevelScore,
   isLevelUnlocked,
   getAttemptCount
 } from '../utils/storage'
+import { logActivity } from '../utils/storage'
 
 const LEVEL_MAP = { 'level-1': 1, 'level-2': 2, 'level-3': 3 }
 
@@ -58,6 +60,15 @@ export default function QuizScreen() {
 
   const question = questions[index]
   const currentOptions = shuffledOptions[index]
+
+  const [questionFavorited, setQuestionFavorited] = useState(false)
+
+  // reset favorite state when question changes
+  useEffect(() => {
+    if (question) {
+      setQuestionFavorited(isQuestionFavorited(slug, question.id))
+    }
+  }, [index, slug])
 
   useEffect(() => {
     startTime.current = Date.now()
@@ -154,6 +165,9 @@ export default function QuizScreen() {
       attemptCount
     })
 
+    // To record every Answer
+    logActivity()
+
     const updated = [...answersRef.current, { correct, confidence: signal }]
     answersRef.current = updated
     setAnswers(updated)
@@ -232,10 +246,34 @@ export default function QuizScreen() {
         )}
       </div>
 
-      {/* Question */}
-      <h2 className="text-white text-lg font-semibold leading-snug mb-4">
-        <MathText text={question.question} />
-      </h2>
+      {/* Question header row: favorite button */}
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <h2 className="text-white text-lg font-semibold leading-snug flex-1">
+          <MathText text={question.question} />
+        </h2>
+        <button
+          onClick={() => {
+            const course = courses.find(c => c.slug === slug)
+            const newState = toggleQuestionFavorite({
+              courseSlug: slug,
+              questionId: question.id,
+              questionText: question.question,
+              courseTitle: course?.titleDisplay || slug,
+            })
+            setQuestionFavorited(newState)
+          }}
+          className="shrink-0 mt-1 transition-transform active:scale-90"
+          aria-label="Bookmark question"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24"
+            fill={questionFavorited ? '#3b82f6' : 'none'}
+            stroke={questionFavorited ? '#3b82f6' : '#4b5563'}
+            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+          </svg>
+        </button>
+      </div>
+
 
       {questionImageUrl && (
         <div className="w-[85%] max-w-md mx-auto mb-6 rounded-xl overflow-hidden border border-gray-800 aspect-video">

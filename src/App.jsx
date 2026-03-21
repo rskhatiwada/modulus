@@ -7,11 +7,11 @@ import QuizScreen from './screens/QuizScreen'
 import BlitzScreen from './screens/BlitzScreen'
 import BossScreen from './screens/BossScreen'
 import ResultScreen from './screens/ResultScreen'
+import ProfileScreen from './screens/ProfileScreen'
 import CourseReportScreen from './screens/CourseReportScreen'
 
 // Stub screens — replace with real ones later
 function SearchScreen() { return <div className="p-6 text-white">Search — coming soon</div> }
-function ProfileScreen() { return <div className="p-6 text-white">Profile — coming soon</div> }
 
 export default function App() {
   return (

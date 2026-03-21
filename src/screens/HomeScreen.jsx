@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect, useRef } from 'react'
 import { courses } from '../data/courses'
+import { isCourseFavorited, toggleCourseFavorite } from '../utils/storage'
 import { loadProgress } from '../utils/storage'
 import {
   searchCourses,
@@ -10,6 +11,7 @@ import {
   saveSearchHistory,
   clearSearchHistory,
 } from '../utils/search'
+
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -548,6 +550,13 @@ function CourseCard({ course, navigate, highlightedTags = [] }) {
   const started = !!progress
   const completed = progress?.completedAt
   const highlightSet = new Set(highlightedTags)
+  const [favorited, setFavorited] = useState(() => isCourseFavorited(course.slug))
+
+  function handleFavorite(e) {
+    e.stopPropagation() // don't navigate to course
+    const newState = toggleCourseFavorite(course.slug)
+    setFavorited(newState)
+  }
 
   return (
     <div
@@ -556,10 +565,24 @@ function CourseCard({ course, navigate, highlightedTags = [] }) {
                  cursor-pointer hover:border-blue-500
                  transition-all duration-200 active:scale-95"
     >
-      {/* Domain tag */}
-      <span className="text-xs font-semibold text-blue-400 uppercase tracking-widest">
-        {course.domain.replace(/-/g, ' ')} · {course.topic.replace(/-/g, ' ')}
-      </span>
+      {/* Top row: domain tag + favorite button */}
+      <div className="flex items-start justify-between gap-2">
+        <span className="text-xs font-semibold text-blue-400 uppercase tracking-widest">
+          {course.domain.replace(/-/g, ' ')} · {course.topic.replace(/-/g, ' ')}
+        </span>
+        <button
+          onClick={handleFavorite}
+          className="shrink-0 transition-transform active:scale-90 mt-0.5"
+          aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24"
+            fill={favorited ? '#3b82f6' : 'none'}
+            stroke={favorited ? '#3b82f6' : '#4b5563'}
+            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+          </svg>
+        </button>
+      </div>
 
       {/* Title */}
       <h2 className="text-white font-bold text-lg mt-1 leading-snug">
@@ -595,7 +618,6 @@ function CourseCard({ course, navigate, highlightedTags = [] }) {
           {started && !completed && <span className="text-blue-400 text-xs">In progress</span>}
           {!started && <span className="text-gray-600 text-xs">Not started</span>}
         </div>
-
         <div className="flex gap-1">
           {[1, 2, 3].map(lvl => {
             const score = progress?.levelScores?.[lvl]
@@ -606,11 +628,11 @@ function CourseCard({ course, navigate, highlightedTags = [] }) {
                 className={`w-6 h-6 rounded-full text-xs font-bold
                             flex items-center justify-center
                             ${score >= 0.7
-                              ? 'bg-blue-500 text-white'
-                              : unlocked
-                                ? 'bg-gray-700 text-gray-300'
-                                : 'bg-gray-800 text-gray-600'
-                            }`}
+                    ? 'bg-blue-500 text-white'
+                    : unlocked
+                      ? 'bg-gray-700 text-gray-300'
+                      : 'bg-gray-800 text-gray-600'
+                  }`}
               >
                 {lvl}
               </div>

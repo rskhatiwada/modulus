@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import { courses } from '../data/courses'
-import { getAllProgress, getResumeRoute } from '../utils/storage'
+import { getAllProgress, getResumeRoute, getFavorites } from '../utils/storage'
+import StatsOverview from '../components/StatsOverview'
+import AchievementsSection from '../components/AchievementsSection'
 
 // ── Progress node states ──────────────────────────────────
 function getNodeStates(p) {
@@ -13,39 +15,24 @@ function getNodeStates(p) {
         story: 'done',
         l1: score[1] !== null ? 'done' : 'current',
         blitz: score[1] !== null ? (blitzDone ? 'done' : 'current') : 'locked',
-        l2: p.levelsUnlocked.includes(2)
-            ? (score[2] !== null ? 'done' : 'current')
-            : 'locked',
-        l3: p.levelsUnlocked.includes(3)
-            ? (score[3] !== null ? 'done' : 'current')
-            : 'locked',
-        boss: score[3] !== null
-            ? (p.completedAt ? 'done' : 'current')
-            : 'locked',
+        l2: p.levelsUnlocked.includes(2) ? (score[2] !== null ? 'done' : 'current') : 'locked',
+        l3: p.levelsUnlocked.includes(3) ? (score[3] !== null ? 'done' : 'current') : 'locked',
+        boss: score[3] !== null ? (p.completedAt ? 'done' : 'current') : 'locked',
     }
 }
 
 // ── Single progress node ──────────────────────────────────
 function Node({ label, state, score }) {
-    const base = 'flex flex-col items-center gap-1'
     const dot = {
         done: 'w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold',
         current: 'w-8 h-8 rounded-full bg-blue-500/20 border-2 border-blue-400 flex items-center justify-center animate-pulse',
         locked: 'w-8 h-8 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center',
     }
-    const icon = {
-        done: '✓',
-        current: '→',
-        locked: '·',
-    }
-    const textColor = {
-        done: 'text-blue-400',
-        current: 'text-white',
-        locked: 'text-gray-600',
-    }
+    const icon = { done: '✓', current: '→', locked: '·' }
+    const textColor = { done: 'text-blue-400', current: 'text-white', locked: 'text-gray-600' }
 
     return (
-        <div className={base}>
+        <div className="flex flex-col items-center gap-1">
             <div className={dot[state]}>
                 <span className={state === 'locked' ? 'text-gray-600 text-lg' : 'text-white text-xs'}>
                     {icon[state]}
@@ -59,14 +46,102 @@ function Node({ label, state, score }) {
     )
 }
 
-// ── Connector line between nodes ─────────────────────────
+// ── Connector line ────────────────────────────────────────
 function Connector({ active }) {
     return (
         <div className={`flex-1 h-0.5 mt-4 ${active ? 'bg-blue-500/40' : 'bg-gray-800'}`} />
     )
 }
 
-// ── Course card with progress map ────────────────────────
+// ── Favorite Courses ──────────────────────────────────────
+function FavoriteCourses({ navigate }) {
+    const { courses: favSlugs } = getFavorites()
+
+    if (favSlugs.length === 0) return (
+        <div className="rounded-xl border border-gray-800 bg-gray-900 p-4 text-center mb-6">
+            <p className="text-gray-500 text-xs">
+                No favorites yet — tap the bookmark icon on any course.
+            </p>
+        </div>
+    )
+
+    return (
+        <div className="flex flex-col gap-3 mb-6">
+            {favSlugs
+                .sort((a, b) => b.savedAt - a.savedAt)
+                .map(({ slug }) => {
+                    const course = courses.find(c => c.slug === slug)
+                    if (!course) return null
+                    return (
+                        <div
+                            key={slug}
+                            onClick={() => navigate(`/${course.domain}/${course.topic}/${course.slug}/story`)}
+                            className="flex items-center gap-3 bg-gray-900 border border-gray-800
+                         rounded-xl px-4 py-3 cursor-pointer hover:border-blue-500
+                         transition-all duration-200 active:scale-95"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24"
+                                fill="#3b82f6" stroke="#3b82f6" strokeWidth="2"
+                                strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                            </svg>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-white text-xs font-semibold truncate">
+                                    {course.titleDisplay}
+                                </p>
+                                <p className="text-gray-500 text-[10px] mt-0.5 uppercase tracking-wide">
+                                    {course.domain.replace(/-/g, ' ')}
+                                </p>
+                            </div>
+                            <span className="text-gray-600 text-xs shrink-0">→</span>
+                        </div>
+                    )
+                })}
+        </div>
+    )
+}
+
+// ── Favorite Questions ────────────────────────────────────
+function FavoriteQuestions({ navigate }) {
+    const { questions: favQs } = getFavorites()
+
+    if (favQs.length === 0) return (
+        <div className="rounded-xl border border-gray-800 bg-gray-900 p-4 text-center mb-6">
+            <p className="text-gray-500 text-xs">
+                No bookmarked questions yet — tap the bookmark icon during any quiz.
+            </p>
+        </div>
+    )
+
+    return (
+        <div className="flex flex-col gap-3 mb-6">
+            {favQs
+                .sort((a, b) => b.savedAt - a.savedAt)
+                .map(({ courseSlug, questionId, questionText, courseTitle }) => {
+                    const course = courses.find(c => c.slug === courseSlug)
+                    if (!course) return null
+                    return (
+                        <div
+                            key={`${courseSlug}-${questionId}`}
+                            onClick={() => navigate(`/${course.domain}/${course.topic}/${courseSlug}/story`)}
+                            className="bg-gray-900 border border-gray-800 rounded-xl px-4 py-3
+                         cursor-pointer hover:border-blue-500
+                         transition-all duration-200 active:scale-95"
+                        >
+                            <p className="text-gray-500 text-[10px] uppercase tracking-wide mb-1">
+                                {courseTitle}
+                            </p>
+                            <p className="text-white text-xs leading-relaxed line-clamp-2">
+                                {questionText}
+                            </p>
+                        </div>
+                    )
+                })}
+        </div>
+    )
+}
+
+// ── Course card with progress map ─────────────────────────
 function LearnCard({ progress, navigate }) {
     const course = courses.find(c => c.slug === progress.course)
     if (!course) return null
@@ -132,7 +207,6 @@ export default function LearnScreen() {
     const allProgress = getAllProgress()
     const started = allProgress.filter(p => p.course)
 
-    // Sort: in-progress first, completed last
     started.sort((a, b) => {
         if (a.completedAt && !b.completedAt) return 1
         if (!a.completedAt && b.completedAt) return -1
@@ -145,12 +219,28 @@ export default function LearnScreen() {
             <h1 className="text-2xl font-black mb-1">My Learning</h1>
             <p className="text-gray-500 text-sm mb-6">Pick up where you left off.</p>
 
+            {/* Course progress cards */}
             {started.length === 0 ? (
-                <div className="text-center py-24">
+                <div className="text-center py-16">
                     <p className="text-4xl mb-4">📚</p>
                     <p className="text-white font-bold text-lg mb-2">Nothing here yet</p>
                     <p className="text-gray-500 text-sm mb-8">
                         Start any course and it will appear here.
+                    </p>
+                    {/* Stats + Learning Pulse */}
+                    <StatsOverview />
+
+                    {/* Achievements */}
+                    <div className="mb-8">
+                        <p className="text-xs font-semibold text-gray-600 uppercase tracking-widest mb-3">
+                            Achievements
+                        </p>
+                        <AchievementsSection />
+                    </div>
+
+                    {/* Course progress cards */}
+                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-widest mb-3">
+                        In Progress
                     </p>
                     <button
                         onClick={() => navigate('/')}
@@ -167,6 +257,23 @@ export default function LearnScreen() {
                     ))}
                 </div>
             )}
+
+            {/* Favorite Courses */}
+            <div className="mt-8">
+                <p className="text-xs font-semibold text-gray-600 uppercase tracking-widest mb-3">
+                    Favorite Courses
+                </p>
+                <FavoriteCourses navigate={navigate} />
+            </div>
+
+            {/* Bookmarked Questions */}
+            <div className="mt-2">
+                <p className="text-xs font-semibold text-gray-600 uppercase tracking-widest mb-3">
+                    Bookmarked Questions
+                </p>
+                <FavoriteQuestions navigate={navigate} />
+            </div>
+
         </div>
     )
 }
