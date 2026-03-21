@@ -1,10 +1,10 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Home, BookOpen, Search, User } from 'lucide-react'
+import { Home, BookOpen, Bot, User } from 'lucide-react'
 
 const tabs = [
     { label: 'Home', icon: Home, path: '/' },
     { label: 'My Learning', icon: BookOpen, path: '/learn' },
-    { label: 'Search', icon: Search, path: '/search' },
+    { label: 'AI Coach', icon: Bot, path: '/coach' },
     { label: 'Profile', icon: User, path: '/profile' },
 ]
 
@@ -16,19 +16,15 @@ export default function BottomNav() {
         <>
             {/* ── DESKTOP — top navbar ── */}
             <nav className="hidden md:flex fixed top-0 left-0 right-0 z-50
-                bg-gray-950/95 backdrop-blur-sm border-b border-gray-800
-                h-14 justify-center">
-
-                <div className="max-w-8xl w-full mx-auto px-6 sm:px-12 lg:px-24 flex items-center justify-between">
-                    {/* Logo left */}
+                      bg-gray-950/95 backdrop-blur-sm border-b border-gray-800
+                      h-14 justify-center">
+                <div className="max-w-7xl w-full mx-auto px-6 sm:px-12 lg:px-24 flex items-center justify-between">
                     <span
                         onClick={() => navigate('/')}
                         className="text-white font-bold text-lg cursor-pointer tracking-tight"
                     >
                         Scientific<span className="text-blue-400">FREAK</span>
                     </span>
-
-                    {/* Links right */}
                     <div className="flex items-center gap-6">
                         {tabs.map(({ label, icon: Icon, path }) => {
                             const active = pathname === path
@@ -37,8 +33,8 @@ export default function BottomNav() {
                                     key={path}
                                     onClick={() => navigate(path)}
                                     className={`flex items-center gap-2 text-sm font-medium
-                        transition-colors duration-150
-                        ${active ? 'text-blue-400' : 'text-gray-400 hover:text-white'}`}
+                              transition-colors duration-150
+                              ${active ? 'text-blue-400' : 'text-gray-400 hover:text-white'}`}
                                 >
                                     <Icon size={16} strokeWidth={active ? 2.2 : 1.8} />
                                     {label}

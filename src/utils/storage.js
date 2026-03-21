@@ -514,3 +514,54 @@ export function computeAchievements(allProgress) {
 
   return achievements
 }
+
+// ── Build AI Coach system prompt context ──────────────────
+export function buildCoachContext() {
+  const allProgress = getAllProgress()
+  if (!allProgress.length) return null
+
+  const allQuestions = allProgress.flatMap(p => p.questions || [])
+  if (allQuestions.length < 5) return null
+
+  const agg = getAggregateProfile()
+  const completedCourses = allProgress.filter(p => p.completedAt)
+  const inProgressCourses = allProgress.filter(p => !p.completedAt)
+
+  // Top misconceptions
+  const misconceptions = agg.misconceptions.slice(0, 5)
+
+  // Weakest concepts
+  const weakConcepts = Object.entries(agg.conceptMastery || {})
+    .map(([tag, { correct, total }]) => ({ tag, pct: Math.round((correct / total) * 100), total }))
+    .filter(c => c.total >= 2)
+    .sort((a, b) => a.pct - b.pct)
+    .slice(0, 5)
+
+  // Overconfident questions (wrong + knew_it)
+  const overconfidentExamples = allQuestions
+    .filter(q => !q.correct && (q.confidence === 'knew_it' || q.confidence === 'got_it'))
+    .slice(0, 3)
+    .map(q => q.misconceptionTag || q.conceptTags?.[0] || 'unknown concept')
+
+  return {
+    totalQuestions: allQuestions.length,
+    completedCourses: completedCourses.map(p => p.course),
+    inProgressCourses: inProgressCourses.map(p => p.course),
+    calibrationScore: Math.round((agg.calibrationScore || 0) * 100),
+    overconfidenceIndex: Math.round((agg.overconfidenceIndex || 0) * 100),
+    system1Vulnerability: Math.round((agg.system1Vulnerability || 0) * 100),
+    misconceptions,
+    weakConcepts,
+    overconfidentExamples,
+    insightScore: agg.totalQuestions > 0
+      ? Math.max(0, allQuestions.reduce((s, q) => {
+        const d = q.difficultyEstimate || 3
+        const knewIt = q.confidence === 'knew_it' || q.confidence === 'got_it'
+        if (q.correct && knewIt) return s + d * 10
+        if (q.correct) return s + d * 6
+        if (!q.correct && knewIt) return s - d * 4
+        return s + 1
+      }, 0))
+      : 0
+  }
+}

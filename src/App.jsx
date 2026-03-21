@@ -9,6 +9,7 @@ import BossScreen from './screens/BossScreen'
 import ResultScreen from './screens/ResultScreen'
 import ProfileScreen from './screens/ProfileScreen'
 import CourseReportScreen from './screens/CourseReportScreen'
+import AICoachScreen from './screens/AICoachScreen'
 
 // Stub screens — replace with real ones later
 function SearchScreen() { return <div className="p-6 text-white">Search — coming soon</div> }
@@ -23,7 +24,7 @@ export default function App() {
           <Route element={<MainLayout />}>
             <Route path="/" element={<HomeScreen />} />
             <Route path="/learn" element={<LearnScreen />} />
-            <Route path="/search" element={<SearchScreen />} />
+            <Route path="/coach" element={<AICoachScreen />} />
             <Route path="/profile" element={<ProfileScreen />} />
           </Route>
 
